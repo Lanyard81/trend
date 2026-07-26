@@ -1,0 +1,12 @@
+node_modules/
+dist/
+release/
+*.zip
+.DS_Store
+Thumbs.db
+*.log
+ios/
+android/
+.vscode/
+trend-pages/
+TrendFiles.zip

@@ -1,0 +1,21 @@
+{
+  "name": "Trend",
+  "short_name": "Trend",
+  "description": "Personal health tracker: weight, measurements, habits, meals, medication and mood \u2014 judge the trend, not the day",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F2F5F3",
+  "theme_color": "#234237",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

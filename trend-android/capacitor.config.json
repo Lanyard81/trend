@@ -1,0 +1,8 @@
+{
+  "appId": "com.trend.app",
+  "appName": "Trend",
+  "webDir": "dist",
+  "ios": {
+    "contentInset": "always"
+  }
+}
