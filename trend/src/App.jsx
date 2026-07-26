@@ -536,7 +536,7 @@ function Today({ profile, entries, saveEntries, habits, saveHabits, week, supps,
       <Card>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8 }}>
           <div style={{ ...headFont, fontWeight: 800, color: PINE_T }}>Today's habits</div>
-          <button onClick={() => go("habits")} style={{ border: "none", background: "none", color: TEAL, fontWeight: 600, fontSize: 12, cursor: "pointer" }}>Week grid →</button>
+          <button onClick={() => go("week")} style={{ border: "none", background: "none", color: TEAL, fontWeight: 600, fontSize: 12, cursor: "pointer" }}>Week grid →</button>
         </div>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
           {hList.map((h) => {
@@ -967,66 +967,7 @@ function DailyLog({ entries, save, heightM = HEIGHT_M, workouts = [], saveWorkou
   );
 }
 
-// ---------- Habits ----------
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-function Habits({ habits, save }) {
-  const wk = weekKey();
-  const priorList = (() => {
-    const keys = Object.keys(habits).filter((k) => k < wk).sort();
-    for (let i = keys.length - 1; i >= 0; i--) { if (habits[keys[i]]?.list?.length) return habits[keys[i]].list; }
-    return DEFAULT_HABITS;
-  })();
-  const week = habits[wk] || { list: priorList, checks: {} };
-  const list = week.list || priorList;
-  const [newHabit, setNewHabit] = useState("");
-
-  const toggle = (h, d) => {
-    const checks = { ...week.checks, [h]: { ...(week.checks[h] || {}), [d]: !(week.checks[h] || {})[d] } };
-    save({ ...habits, [wk]: { ...week, list, checks } });
-  };
-  const addHabit = () => {
-    if (!newHabit.trim()) return;
-    save({ ...habits, [wk]: { ...week, list: [...list, newHabit.trim()], checks: week.checks } });
-    setNewHabit("");
-  };
-  const removeHabit = (h) => {
-    const checks = { ...week.checks }; delete checks[h];
-    save({ ...habits, [wk]: { ...week, list: list.filter((x) => x !== h), checks } });
-  };
-
-  return (
-    <div className="tt-cols">
-      <div className="tt-span2" style={{ fontSize: 13, color: "var(--mut)", marginBottom: 10 }}>Week starting {fmtDay(wk)} — tap a circle to mark it done. A fresh grid starts every Monday.</div>
-      {list.map((h) => {
-        const row = week.checks[h] || {};
-        const count = DAYS.filter((d) => row[d]).length;
-        return (
-          <Card key={h} style={{ marginBottom: 8, padding: "12px 14px" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-              <div style={{ fontWeight: 600, fontSize: 14 }}>{h}</div>
-              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                <span style={{ ...numFont, fontSize: 18, fontWeight: 700, color: count >= 5 ? GOOD : "var(--mut)" }}>{count}/7</span>
-                <button onClick={() => removeHabit(h)} style={{ border: "none", background: "none", color: "#B77", cursor: "pointer", fontSize: 16 }}>✕</button>
-              </div>
-            </div>
-            <div style={{ display: "flex", gap: 6, justifyContent: "space-between" }}>
-              {DAYS.map((d) => (
-                <button key={d} onClick={() => toggle(h, d)} style={{
-                  flex: 1, aspectRatio: "1", maxWidth: 46, borderRadius: "50%", border: row[d] ? "none" : "2px solid #DCD2BC",
-                  background: row[d] ? TEAL : "var(--surface)", color: row[d] ? "#fff" : "var(--mut)", fontWeight: 600, fontSize: 12, cursor: "pointer",
-                }}>{d[0]}</button>
-              ))}
-            </div>
-          </Card>
-        );
-      })}
-      <Card className="tt-span2" style={{ display: "flex", gap: 8 }}>
-        <input placeholder="Add a habit…" value={newHabit} onChange={(e) => setNewHabit(e.target.value)} style={{ ...inputStyle, flex: 1 }} />
-        <Btn kind="teal" onClick={addHabit}>Add</Btn>
-      </Card>
-    </div>
-  );
-}
 
 // ---------- Schedule ----------
 function fmtTime(t) {
@@ -1045,7 +986,7 @@ function sortDayItems(items) {
   return result;
 }
 
-function Schedule({ supps = DEFAULT_SUPPS, week = DEFAULT_WEEK, saveWeek }) {
+function Schedule({ supps = DEFAULT_SUPPS, week = DEFAULT_WEEK, saveWeek, habits = {}, saveHabits = () => {} }) {
   const today = new Date().toLocaleDateString(undefined, { weekday: "long" });
   const [open, setOpen] = useState({ [today]: true });
   const [editDay, setEditDay] = useState(null);
@@ -1076,6 +1017,30 @@ function Schedule({ supps = DEFAULT_SUPPS, week = DEFAULT_WEEK, saveWeek }) {
   };
 
   const selStyle = { ...inputStyle, minWidth: 0, padding: "8px 8px", fontSize: 13, WebkitAppearance: "none", appearance: "none" };
+
+  // ---- habits (merged in from the standalone Habits tab) ----
+  const habitWk = weekKey();
+  const priorHabitList = (() => {
+    const keys = Object.keys(habits).filter((k) => k < habitWk).sort();
+    for (let i = keys.length - 1; i >= 0; i--) { if (habits[keys[i]]?.list?.length) return habits[keys[i]].list; }
+    return DEFAULT_HABITS;
+  })();
+  const habitWeek = habits[habitWk] || { list: priorHabitList, checks: {} };
+  const habitList = habitWeek.list || priorHabitList;
+  const [newHabit, setNewHabit] = useState("");
+  const toggleHabit = (h, d) => {
+    const checks = { ...habitWeek.checks, [h]: { ...(habitWeek.checks[h] || {}), [d]: !(habitWeek.checks[h] || {})[d] } };
+    saveHabits({ ...habits, [habitWk]: { ...habitWeek, list: habitList, checks } });
+  };
+  const addHabit = () => {
+    if (!newHabit.trim()) return;
+    saveHabits({ ...habits, [habitWk]: { ...habitWeek, list: [...habitList, newHabit.trim()], checks: habitWeek.checks } });
+    setNewHabit("");
+  };
+  const removeHabit = (h) => {
+    const checks = { ...habitWeek.checks }; delete checks[h];
+    saveHabits({ ...habits, [habitWk]: { ...habitWeek, list: habitList.filter((x) => x !== h), checks } });
+  };
 
   return (
     <div className="tt-cols">
@@ -1157,9 +1122,43 @@ function Schedule({ supps = DEFAULT_SUPPS, week = DEFAULT_WEEK, saveWeek }) {
           </Card>
         );
       })}
-      <div style={{ fontSize: 12, color: "var(--mut)", padding: "6px 4px" }}>{rhythm ? `Supplement rhythm: ${rhythm}.` : "No supplements set — add them in the Me tab."} Timed items sort themselves; untimed ones use the arrows.</div>
-      <div style={{ padding: "4px" }}>
+      <div className="tt-span2" style={{ fontSize: 12, color: "var(--mut)", padding: "6px 4px" }}>{rhythm ? `Supplement rhythm: ${rhythm}.` : "No supplements set — add them in the Me tab."} Timed items sort themselves; untimed ones use the arrows.</div>
+      <div className="tt-span2" style={{ padding: "4px" }}>
         <ConfirmBtn confirmLabel="Reset the whole week? Customisations will be lost." onConfirm={() => saveWeek(JSON.parse(JSON.stringify(DEFAULT_WEEK)))}>Reset entire week to default</ConfirmBtn>
+      </div>
+
+      <div className="tt-span2" style={{ marginTop: 10 }}>
+        <div style={{ ...headFont, fontWeight: 800, color: PINE_T, fontSize: 17, marginBottom: 4 }}>Habits</div>
+        <div style={{ fontSize: 13, color: "var(--mut)", marginBottom: 10 }}>Week starting {fmtDay(habitWk)} — tap a circle to mark it done. A fresh grid starts every Monday.</div>
+        <div className="tt-cols">
+          {habitList.map((h) => {
+            const row = habitWeek.checks[h] || {};
+            const count = DAYS.filter((d) => row[d]).length;
+            return (
+              <Card key={h} style={{ marginBottom: 8, padding: "12px 14px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                  <div style={{ fontWeight: 600, fontSize: 14 }}>{h}</div>
+                  <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                    <span style={{ ...numFont, fontSize: 18, fontWeight: 700, color: count >= 5 ? GOOD : "var(--mut)" }}>{count}/7</span>
+                    <button onClick={() => removeHabit(h)} style={{ border: "none", background: "none", color: "#B77", cursor: "pointer", fontSize: 16 }}>✕</button>
+                  </div>
+                </div>
+                <div style={{ display: "flex", gap: 6, justifyContent: "space-between" }}>
+                  {DAYS.map((d) => (
+                    <button key={d} onClick={() => toggleHabit(h, d)} style={{
+                      flex: 1, aspectRatio: "1", maxWidth: 46, borderRadius: "50%", border: row[d] ? "none" : "2px solid #DCD2BC",
+                      background: row[d] ? TEAL : "var(--surface)", color: row[d] ? "#fff" : "var(--mut)", fontWeight: 600, fontSize: 12, cursor: "pointer",
+                    }}>{d[0]}</button>
+                  ))}
+                </div>
+              </Card>
+            );
+          })}
+          <Card className="tt-span2" style={{ display: "flex", gap: 8 }}>
+            <input placeholder="Add a habit…" value={newHabit} onChange={(e) => setNewHabit(e.target.value)} style={{ ...inputStyle, flex: 1 }} />
+            <Btn kind="teal" onClick={addHabit}>Add</Btn>
+          </Card>
+        </div>
       </div>
     </div>
   );
@@ -1632,7 +1631,7 @@ function Profile({ profile, saveProfile, goal, setGoal, entries, photos, savePho
       <Card style={{ marginBottom: 14 }}>
         <div style={{ ...headFont, fontWeight: 800, color: PINE_T, marginBottom: 4, fontSize: 17 }}>Tabs & features</div>
         <div style={{ fontSize: 12, color: "var(--mut)", marginBottom: 6 }}>Turn off what you don't use — Today and Me always stay. Hidden tabs keep their data.</div>
-        {[["dash", "Trends", "Charts, weekly review, milestones"], ["log", "Daily Log", "Weigh-ins and the gym logger"], ["habits", "Habits", "Weekly habit grid"], ["week", "Schedule", "Editable weekly plan"], ["meals", "Meals", "Recipes and shopping list"]].map(([id, name, desc]) => (
+        {[["dash", "Trends", "Charts, weekly review, milestones"], ["log", "Daily Log", "Weigh-ins and the gym logger"], ["week", "Schedule", "Editable weekly plan and habit grid"], ["meals", "Meals", "Recipes and shopping list"]].map(([id, name, desc]) => (
           <div key={id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, borderTop: "1px solid rgba(120,106,84,0.22)", padding: "9px 0" }}>
             <div>
               <div style={{ fontWeight: 600, fontSize: 14 }}>{name}</div>
@@ -2336,7 +2335,6 @@ const RESPONSIVE_CSS = `
 // ---------- App shell ----------
 const TABS = [
   { id: "today", label: "Today", icon: "☀" },
-  { id: "habits", label: "Habits", icon: "✓" },
   { id: "log", label: "Daily Log", icon: "✎" },
   { id: "week", label: "Schedule", icon: "▤" },
   { id: "meals", label: "Meals", icon: "◍" },
@@ -2477,8 +2475,7 @@ export default function HealthTracker() {
             {tab === "dash" && <Dashboard entries={entries} habits={habits} goal={goal} setGoal={setGoal} heightM={heightM} profile={profile} workouts={workouts} water={water} saveWater={saveWater} dark={dark} pal={pal} holidays={holidays} glp={glp} />}
             {tab === "log" && <DailyLog entries={entries} save={saveEntries} heightM={heightM} workouts={workouts} saveWorkouts={saveWorkouts} />}
             {tab === "glp" && profile.glpEnabled && <Glp glp={glp} saveGlp={saveGlp} accent={dark ? pal.accD : pal.accL} water={water} saveWater={saveWater} settings={glpSettings} saveSettings={saveGlpSettings} dark={dark} />}
-            {tab === "habits" && <Habits habits={habits} save={saveHabits} />}
-            {tab === "week" && <Schedule supps={supps} week={week} saveWeek={saveWeek} />}
+            {tab === "week" && <Schedule supps={supps} week={week} saveWeek={saveWeek} habits={habits} saveHabits={saveHabits} />}
             {tab === "meals" && <Meals recipes={recipes} save={saveRecipes} shopping={shopping} saveShopping={saveShopping} lunchEst={profile.lunchMacros || LUNCH_SNACKS_DEFAULT} macroT={macroT} toast={showToast} foodLog={foodLog} saveFoodLog={saveFoodLog} />}
             {tab === "me" && <Profile profile={profile} saveProfile={saveProfile} goal={goal} setGoal={setGoal} entries={entries} photos={photos} savePhotos={savePhotos} supps={supps} saveSupps={saveSupps} theme={theme} setTheme={setTheme} colorTheme={colorTheme} setColorTheme={setColorTheme} tabsEnabled={tabsEnabled} saveTabsEnabled={saveTabsEnabled} holidays={holidays} saveHolidays={saveHolidays} water={water} glp={glp} workouts={workouts} foodLog={foodLog} />}
           </>
