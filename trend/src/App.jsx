@@ -1174,6 +1174,7 @@ function Meals({ recipes, save, shopping = [], saveShopping, lunchEst = LUNCH_SN
   const [openId, setOpenId] = useState(null);
   const [editing, setEditing] = useState(null);
   const [rotation, setRotation] = useState({ b: [], d: [] });
+  const [pickerOpen, setPickerOpen] = useState(false);
   const [newItem, setNewItem] = useState("");
   const [customLog, setCustomLog] = useState({ name: "", cal: "", p: "", c: "", f: "" });
   const recipeLines = (r) => r.ingredients.split("\n").map((l) => l.trim())
@@ -1251,12 +1252,13 @@ function Meals({ recipes, save, shopping = [], saveShopping, lunchEst = LUNCH_SN
   const RotationPicker = ({ type, ids, rkey }) => (
     <div>
       <div style={{ fontSize: 11, letterSpacing: 1, textTransform: "uppercase", color: "var(--mut)", fontWeight: 600, marginBottom: 6 }}>{type === "breakfast" ? "Breakfast rotation" : "Dinner rotation"}</div>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, maxHeight: 210, overflowY: "auto", paddingRight: 2 }}>
         {recipes.filter((r) => r.type === type).map((r) => {
           const on = (ids || []).includes(r.id);
           return (
             <button key={r.id} onClick={() => toggleRotation(rkey, r.id)} style={{
-              padding: "7px 11px", borderRadius: 16, cursor: "pointer", fontSize: 12.5, fontWeight: 600, ...font,
+              padding: "8px 9px", borderRadius: 10, cursor: "pointer", fontSize: 12, fontWeight: 600, ...font,
+              textAlign: "left", lineHeight: 1.25, minWidth: 0,
               border: on ? "none" : "1.5px solid rgba(120,106,84,0.35)",
               background: on ? TEAL : "var(--surface)", color: on ? "#fff" : "var(--mut)",
             }}>{on ? "✓ " : ""}{r.name}</button>
@@ -1311,11 +1313,19 @@ function Meals({ recipes, save, shopping = [], saveShopping, lunchEst = LUNCH_SN
     <div className="tt-cols">
       <Card style={{ marginBottom: 14, borderLeftWidth: 4, borderLeftStyle: "solid", borderLeftColor: "#2F4A3E" }}>
         <div style={{ ...headFont, fontWeight: 800, color: PINE_T, marginBottom: 8, fontSize: 16 }}>This week's rotation — day macro check</div>
-        <div style={{ display: "grid", gap: 12, marginBottom: 12 }}>
-          <RotationPicker type="breakfast" ids={rotation.b} rkey="b" />
-          <RotationPicker type="dinner" ids={rotation.d} rkey="d" />
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, marginBottom: 12 }}>
+          <div style={{ fontSize: 13, color: "var(--mut)" }}>
+            {bPicks.length || dPicks.length ? `${bPicks.length} breakfast${bPicks.length !== 1 ? "s" : ""} · ${dPicks.length} dinner${dPicks.length !== 1 ? "s" : ""} selected` : "Nothing selected yet"}
+          </div>
+          <Btn kind="ghost" small onClick={() => setPickerOpen(!pickerOpen)}>{pickerOpen ? "Done" : "Edit rotation"}</Btn>
         </div>
-        <div style={{ fontSize: 11, color: "var(--faint)", marginBottom: 8 }}>Tick as many as you rotate through — the macro check below averages across what's ticked, so "different breakfast Mon/Wed/Fri" works.</div>
+        {pickerOpen && (
+          <div style={{ display: "grid", gap: 12, marginBottom: 12 }}>
+            <RotationPicker type="breakfast" ids={rotation.b} rkey="b" />
+            <RotationPicker type="dinner" ids={rotation.d} rkey="d" />
+            <div style={{ fontSize: 11, color: "var(--faint)" }}>Tick as many as you rotate through — the macro check below averages across what's ticked, so "different breakfast Mon/Wed/Fri" works.</div>
+          </div>
+        )}
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
           <MacroBar label="Protein" val={tot("p")} target={macroT.p} />
           <MacroBar label="Carbs" val={tot("c")} target={macroT.c} />
