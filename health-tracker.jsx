@@ -1244,8 +1244,8 @@ function Meals({ recipes, save, shopping = [], saveShopping, lunchEst = LUNCH_SN
             <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
               <Btn kind="ghost" small onClick={async () => {
                 const text = shopping.filter((i) => !i.done).map((i) => i.text).join("\n");
-                try { await navigator.clipboard.writeText(text); setMsg("Copied — paste into any list app"); }
-                catch { setMsg("Couldn't copy on this device"); }
+                try { await navigator.clipboard.writeText(text); toast("Copied — paste into any list app"); }
+                catch { toast("Couldn't copy on this device"); }
               }}>Copy list</Btn>
               {/iPad|iPhone|iPod/.test(typeof navigator !== "undefined" ? navigator.userAgent : "") && (
                 <Btn kind="ghost" small onClick={() => {
