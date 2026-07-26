@@ -18,6 +18,11 @@ const COLOR_THEMES = [
   { id: "forest", name: "Forest & Mustard", primary: "#2F4A3E", ptD: "#6FA98A", accL: "#C9922B", accD: "#E0AA4E", onAL: "#2B2011", onAD: "#241A08" },
   { id: "navy", name: "Navy & Terracotta", primary: "#22364F", ptD: "#6E8FB8", accL: "#C1652F", accD: "#E08856", onAL: "#FFFFFF", onAD: "#241205" },
   { id: "plum", name: "Plum & Copper", primary: "#4B3050", ptD: "#A987AE", accL: "#B67A4B", accD: "#D69A6C", onAL: "#FFFFFF", onAD: "#291708" },
+  { id: "amber", name: "Slate & Amber", primary: "#3A4750", ptD: "#8CA5B0", accL: "#C48A2E", accD: "#E3A94F", onAL: "#241C08", onAD: "#241C08" },
+  { id: "burgundy", name: "Burgundy & Sage", primary: "#5C2A34", ptD: "#C08A96", accL: "#7C9070", accD: "#96AD87", onAL: "#FFFFFF", onAD: "#182410" },
+  { id: "teal", name: "Teal & Rust", primary: "#1F4E4A", ptD: "#6FADA4", accL: "#B8562E", accD: "#D97A4F", onAL: "#FFFFFF", onAD: "#241206" },
+  { id: "rose", name: "Charcoal & Rose", primary: "#3D3530", ptD: "#A79A8C", accL: "#B5636B", accD: "#D18089", onAL: "#FFFFFF", onAD: "#2B0F12" },
+  { id: "olive", name: "Olive & Denim", primary: "#4A4A2E", ptD: "#A6A67C", accL: "#4C6E8C", accD: "#6E93B3", onAL: "#FFFFFF", onAD: "#0E1A24" },
 ];
 function themeVars(ctId, dark) {
   const pal = COLOR_THEMES.find((t) => t.id === ctId) || COLOR_THEMES[0];
@@ -2312,6 +2317,16 @@ const RESPONSIVE_CSS = `
   .tt-dark.tt-theme-navy .tt-btn-primary, .tt-dark.tt-theme-navy .tt-btn-teal { box-shadow: 0 4px 16px rgba(224,136,86,0.30); }
   .tt-dark.tt-theme-plum .tt-card, .tt-dark.tt-theme-plum .tt-tabs { box-shadow: 0 6px 24px rgba(214,154,108,0.10); }
   .tt-dark.tt-theme-plum .tt-btn-primary, .tt-dark.tt-theme-plum .tt-btn-teal { box-shadow: 0 4px 16px rgba(214,154,108,0.30); }
+  .tt-dark.tt-theme-amber .tt-card, .tt-dark.tt-theme-amber .tt-tabs { box-shadow: 0 6px 24px rgba(227,169,79,0.10); }
+  .tt-dark.tt-theme-amber .tt-btn-primary, .tt-dark.tt-theme-amber .tt-btn-teal { box-shadow: 0 4px 16px rgba(227,169,79,0.30); }
+  .tt-dark.tt-theme-burgundy .tt-card, .tt-dark.tt-theme-burgundy .tt-tabs { box-shadow: 0 6px 24px rgba(150,173,135,0.10); }
+  .tt-dark.tt-theme-burgundy .tt-btn-primary, .tt-dark.tt-theme-burgundy .tt-btn-teal { box-shadow: 0 4px 16px rgba(150,173,135,0.30); }
+  .tt-dark.tt-theme-teal .tt-card, .tt-dark.tt-theme-teal .tt-tabs { box-shadow: 0 6px 24px rgba(217,122,79,0.10); }
+  .tt-dark.tt-theme-teal .tt-btn-primary, .tt-dark.tt-theme-teal .tt-btn-teal { box-shadow: 0 4px 16px rgba(217,122,79,0.30); }
+  .tt-dark.tt-theme-rose .tt-card, .tt-dark.tt-theme-rose .tt-tabs { box-shadow: 0 6px 24px rgba(209,128,137,0.10); }
+  .tt-dark.tt-theme-rose .tt-btn-primary, .tt-dark.tt-theme-rose .tt-btn-teal { box-shadow: 0 4px 16px rgba(209,128,137,0.30); }
+  .tt-dark.tt-theme-olive .tt-card, .tt-dark.tt-theme-olive .tt-tabs { box-shadow: 0 6px 24px rgba(110,147,179,0.10); }
+  .tt-dark.tt-theme-olive .tt-btn-primary, .tt-dark.tt-theme-olive .tt-btn-teal { box-shadow: 0 4px 16px rgba(110,147,179,0.30); }
   .tt-dark .tt-btn-primary:active, .tt-dark .tt-btn-teal:active { box-shadow: inset 0 2px 8px rgba(0,0,0,0.5) !important; }
   .tt-dark .tt-btn-ghost:active, .tt-dark .tt-btn-danger:active { background: rgba(255,255,255,0.02) !important; box-shadow: inset 0 2px 6px rgba(0,0,0,0.4) !important; }
   .tt-dark .tt-toggle-track { background: rgba(255,255,255,0.05) !important; box-shadow: inset 0 2px 6px rgba(0,0,0,0.45); }
