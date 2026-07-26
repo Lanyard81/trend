@@ -454,48 +454,6 @@ function Today({ profile, entries, saveEntries, habits, saveHabits, week, supps,
         </Card>
       )}
 
-      <div style={{ display: "flex", gap: 10, marginBottom: 12, flexWrap: "wrap" }}>
-        <Card style={{ flex: 1, padding: "12px 14px" }}>
-          <div style={{ fontSize: 11, letterSpacing: 1, textTransform: "uppercase", color: "var(--mut)", fontWeight: 600 }}>Streak</div>
-          <div style={{ ...numFont, fontSize: 36, fontWeight: 800, color: streak >= 3 ? GOOD : INK }}>{streak > 0 ? `🔥 ${streak}` : "—"}<span style={{ fontSize: 13, color: "var(--faint)" }}> {streak === 1 ? "day" : "days"}</span></div>
-        </Card>
-        <Card style={{ flex: 1.6, padding: "12px 14px" }}>
-          <div style={{ fontSize: 11, letterSpacing: 1, textTransform: "uppercase", color: "var(--mut)", fontWeight: 600 }}>Water · <span style={{ color: cups >= 8 ? GOOD : TEAL, fontWeight: 700 }}>{cups}/8</span></div>
-          <div style={{ display: "flex", gap: 4, marginTop: 6 }}>
-            {Array.from({ length: 8 }).map((_, i) => (
-              <button key={i} onClick={() => setCups(i + 1 === cups ? i : i + 1)} style={{
-                flex: 1, minWidth: 0, height: 34, borderRadius: "0 0 9px 9px", cursor: "pointer",
-                WebkitAppearance: "none", appearance: "none", padding: 0, boxSizing: "border-box",
-                borderWidth: 2, borderStyle: "solid",
-                borderColor: i < cups ? accent : "#A69C8C",
-                background: i < cups ? accent : "rgba(166,156,140,0.18)",
-              }} />
-            ))}
-          </div>
-        </Card>
-        {glpEnabled && (() => {
-          const n = daysSinceDose(glp, todayISO());
-          if (n == null) return null;
-          return (
-            <Card style={{ flex: 0.8, padding: "12px 14px", minWidth: 90 }}>
-              <div style={{ fontSize: 11, letterSpacing: 1, textTransform: "uppercase", color: "var(--mut)", fontWeight: 600 }}>Dose</div>
-              <div style={{ ...numFont, fontSize: 36, fontWeight: 800, color: accent }}>Day {n}</div>
-            </Card>
-          );
-        })()}
-      </div>
-
-      {!hasToday && !holidayActive && (
-        <Card style={{ marginBottom: 12, borderLeftWidth: 4, borderLeftStyle: "solid", borderLeftColor: "#C9922B" }}>
-          <div style={{ ...headFont, fontWeight: 800, color: PINE_T, marginBottom: 8 }}>Morning weigh-in — not logged yet</div>
-          <div style={{ display: "flex", gap: 8 }}>
-            <input type="number" inputMode="decimal" placeholder="Weight kg" value={weight} onChange={(e) => setWeight(e.target.value)} style={{ ...inputStyle, flex: 1, minWidth: 0 }} />
-            <input type="number" inputMode="decimal" placeholder="BF %" value={bf} onChange={(e) => setBf(e.target.value)} style={{ ...inputStyle, flex: 1, minWidth: 0 }} />
-            <Btn onClick={saveEntry}>Save</Btn>
-          </div>
-        </Card>
-      )}
-
       <Card style={{ marginBottom: 12 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 4 }}>
           <div style={{ ...headFont, fontWeight: 800, color: PINE_T }}>{d.day} — {d.focus} <span style={{ fontSize: 12, color: doneCount === visible.length && visible.length ? GOOD : "var(--faint)", fontWeight: 600 }}>· {doneCount}/{visible.length}{doneCount === visible.length && visible.length ? " ✓" : ""}</span></div>
@@ -525,6 +483,49 @@ function Today({ profile, entries, saveEntries, habits, saveHabits, week, supps,
             </button>
           );
         })}
+      </Card>
+
+      {!hasToday && !holidayActive && (
+        <Card style={{ marginBottom: 12, borderLeftWidth: 4, borderLeftStyle: "solid", borderLeftColor: "#C9922B" }}>
+          <div style={{ ...headFont, fontWeight: 800, color: PINE_T, marginBottom: 8 }}>Morning weigh-in — not logged yet</div>
+          <div style={{ display: "flex", gap: 8 }}>
+            <input type="number" inputMode="decimal" placeholder="Weight kg" value={weight} onChange={(e) => setWeight(e.target.value)} style={{ ...inputStyle, flex: 1, minWidth: 0 }} />
+            <input type="number" inputMode="decimal" placeholder="BF %" value={bf} onChange={(e) => setBf(e.target.value)} style={{ ...inputStyle, flex: 1, minWidth: 0 }} />
+          </div>
+          <Btn onClick={saveEntry} style={{ width: "100%", marginTop: 10 }}>Save</Btn>
+        </Card>
+      )}
+
+      <div style={{ display: "flex", gap: 10, marginBottom: 12, flexWrap: "wrap" }}>
+        <Card style={{ flex: 1, padding: "12px 14px" }}>
+          <div style={{ fontSize: 11, letterSpacing: 1, textTransform: "uppercase", color: "var(--mut)", fontWeight: 600 }}>Streak</div>
+          <div style={{ ...numFont, fontSize: 36, fontWeight: 800, color: streak >= 3 ? GOOD : INK }}>{streak > 0 ? `🔥 ${streak}` : "—"}<span style={{ fontSize: 13, color: "var(--faint)" }}> {streak === 1 ? "day" : "days"}</span></div>
+        </Card>
+        {glpEnabled && (() => {
+          const n = daysSinceDose(glp, todayISO());
+          if (n == null) return null;
+          return (
+            <Card style={{ flex: 1, padding: "12px 14px", minWidth: 90 }}>
+              <div style={{ fontSize: 11, letterSpacing: 1, textTransform: "uppercase", color: "var(--mut)", fontWeight: 600 }}>Dose</div>
+              <div style={{ ...numFont, fontSize: 36, fontWeight: 800, color: accent }}>Day {n}</div>
+            </Card>
+          );
+        })()}
+      </div>
+
+      <Card style={{ marginBottom: 12, padding: "12px 14px" }}>
+        <div style={{ fontSize: 11, letterSpacing: 1, textTransform: "uppercase", color: "var(--mut)", fontWeight: 600 }}>Water · <span style={{ color: cups >= 8 ? GOOD : TEAL, fontWeight: 700 }}>{cups}/8</span></div>
+        <div style={{ display: "flex", gap: 6, marginTop: 6 }}>
+          {Array.from({ length: 8 }).map((_, i) => (
+            <button key={i} onClick={() => setCups(i + 1 === cups ? i : i + 1)} style={{
+              flex: 1, minWidth: 0, height: 44, borderRadius: "0 0 9px 9px", cursor: "pointer",
+              WebkitAppearance: "none", appearance: "none", padding: 0, boxSizing: "border-box",
+              borderWidth: 2, borderStyle: "solid",
+              borderColor: i < cups ? accent : "#A69C8C",
+              background: i < cups ? accent : "rgba(166,156,140,0.18)",
+            }} />
+          ))}
+        </div>
       </Card>
 
       <Card>
@@ -638,7 +639,7 @@ function Dashboard({ entries, habits, goal, setGoal, heightM = HEIGHT_M, profile
   return (
     <div className="tt-cols">
       {/* Scoreboard hero */}
-      <div style={{ background: PINE, borderRadius: 18, padding: "22px 20px", color: "var(--surface)", marginBottom: 14 }}>
+      <div className="tt-span2" style={{ background: PINE, borderRadius: 18, padding: "22px 20px", color: "var(--surface)", marginBottom: 14 }}>
         <div style={{ fontSize: 11, letterSpacing: 2, textTransform: "uppercase", opacity: 0.75 }}>7-day average — your real scoreboard</div>
         <div style={{ display: "flex", alignItems: "baseline", gap: 14, flexWrap: "wrap" }}>
           <div style={{ ...numFont, fontSize: 76, fontWeight: 700, lineHeight: 1 }}>{avg7 ?? "—"}<span style={{ fontSize: 26, opacity: 0.7 }}> kg</span></div>
@@ -659,7 +660,7 @@ function Dashboard({ entries, habits, goal, setGoal, heightM = HEIGHT_M, profile
         </div>
       </div>
 
-      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 14 }}>
+      <div className="tt-span2" style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 14 }}>
         <Stat label="Body fat" value={latest?.bodyFat ?? "—"} unit="%" accent={TEAL} />
         <Stat label="Waist" value={latestWaist ?? "—"} unit="cm" sub="best fat-loss signal" />
         <Stat label="BMI" value={bmi ? bmi.toFixed(1) : "—"} unit="" sub={bmiCat} accent={bmi && bmi < 25 ? GOOD : AMBER} />
@@ -669,7 +670,7 @@ function Dashboard({ entries, habits, goal, setGoal, heightM = HEIGHT_M, profile
       </div>
 
       {/* Weekly review */}
-      <Card style={{ marginBottom: 14, borderLeft: `4px solid ${wkChange != null && wkChange <= -0.1 ? GOOD : AMBER}` }}>
+      <Card className="tt-span2" style={{ marginBottom: 14, borderLeft: `4px solid ${wkChange != null && wkChange <= -0.1 ? GOOD : AMBER}` }}>
         <div style={{ fontSize: 11, letterSpacing: 1.5, textTransform: "uppercase", color: "var(--mut)", fontWeight: 700, marginBottom: 6 }}>This week's review</div>
         <div style={{ display: "flex", gap: 18, flexWrap: "wrap", marginBottom: 8 }}>
           <div><span style={{ fontSize: 12, color: "var(--mut)" }}>Weight vs last wk</span><div style={{ ...numFont, fontSize: 24, fontWeight: 700, color: wkChange == null ? "var(--faint)" : wkChange <= 0 ? GOOD : AMBER }}>{wkChange == null ? "—" : `${wkChange > 0 ? "+" : ""}${wkChange.toFixed(1)} kg`}</div></div>
@@ -716,7 +717,7 @@ function Dashboard({ entries, habits, goal, setGoal, heightM = HEIGHT_M, profile
       {(() => {
         const ms = computeMilestones(entries, workouts, goal, heightM, parseFloat(profile.startWeight)).reverse();
         return (
-          <Card style={{ marginBottom: 14 }}>
+          <Card className="tt-span2" style={{ marginBottom: 14 }}>
             <div style={{ fontWeight: 700, marginBottom: 8, color: PINE_T }}>Milestones <span style={{ fontSize: 12, color: "var(--faint)", fontWeight: 400 }}>· {ms.length} unlocked</span></div>
             {ms.length === 0 ? <div style={{ color: "var(--mut)", fontSize: 14 }}>Your first milestone (1 kg down) is closer than you think.</div> :
               ms.slice(0, 8).map((m) => (
@@ -953,7 +954,7 @@ function DailyLog({ entries, save, heightM = HEIGHT_M, workouts = [], saveWorkou
             </div>
             {e.note && <div style={{ fontSize: 12.5, color: "var(--gold)", fontStyle: "italic", marginTop: 2 }}>“{e.note}”</div>}
           </div>
-          <Btn kind="danger" small onClick={() => save(entries.filter((x) => x.date !== e.date))}>Delete</Btn>
+          <ConfirmBtn onConfirm={() => save(entries.filter((x) => x.date !== e.date))}>Delete</ConfirmBtn>
         </Card>
       ))}
       {!sorted.length && <div style={{ textAlign: "center", color: "var(--mut)", padding: 30 }}>No entries yet — Saturday morning is a great time to start.</div>}
@@ -989,8 +990,8 @@ function Habits({ habits, save }) {
   };
 
   return (
-    <div>
-      <div style={{ fontSize: 13, color: "var(--mut)", marginBottom: 10 }}>Week starting {fmtDay(wk)} — tap a circle to mark it done. A fresh grid starts every Monday.</div>
+    <div className="tt-cols">
+      <div className="tt-span2" style={{ fontSize: 13, color: "var(--mut)", marginBottom: 10 }}>Week starting {fmtDay(wk)} — tap a circle to mark it done. A fresh grid starts every Monday.</div>
       {list.map((h) => {
         const row = week.checks[h] || {};
         const count = DAYS.filter((d) => row[d]).length;
@@ -1014,7 +1015,7 @@ function Habits({ habits, save }) {
           </Card>
         );
       })}
-      <Card style={{ display: "flex", gap: 8 }}>
+      <Card className="tt-span2" style={{ display: "flex", gap: 8 }}>
         <input placeholder="Add a habit…" value={newHabit} onChange={(e) => setNewHabit(e.target.value)} style={{ ...inputStyle, flex: 1 }} />
         <Btn kind="teal" onClick={addHabit}>Add</Btn>
       </Card>
@@ -1066,7 +1067,6 @@ function Schedule({ supps = DEFAULT_SUPPS, week = DEFAULT_WEEK, saveWeek }) {
     saveWeek(next);
   };
   const resetDay = (di) => {
-    if (!confirm(`Reset ${week[di].day} to the default plan?`)) return;
     saveWeek(week.map((d, i) => (i === di ? JSON.parse(JSON.stringify(DEFAULT_WEEK[di])) : d)));
   };
 
@@ -1091,10 +1091,9 @@ function Schedule({ supps = DEFAULT_SUPPS, week = DEFAULT_WEEK, saveWeek }) {
                 </div>
                 <span style={{ color: "var(--faint)", paddingLeft: 8 }}>{open[d.day] ? "▴" : "▾"}</span>
               </button>
-              <button onClick={() => { setEditDay(editing ? null : d.day); setOpen({ ...open, [d.day]: true }); }}
-                style={{ border: "none", background: editing ? TEAL : "transparent", color: editing ? "#fff" : TEAL, fontWeight: 700, fontSize: 12, borderRadius: 8, padding: "7px 12px", margin: "0 12px", cursor: "pointer", ...font }}>
+              <Btn kind={editing ? "teal" : "ghost"} small style={{ margin: "0 12px" }} onClick={() => { setEditDay(editing ? null : d.day); setOpen({ ...open, [d.day]: true }); }}>
                 {editing ? "Done" : "Edit"}
-              </button>
+              </Btn>
             </div>
             {open[d.day] && !editing && (
               <div style={{ padding: "0 16px 14px" }}>
@@ -1146,7 +1145,7 @@ function Schedule({ supps = DEFAULT_SUPPS, week = DEFAULT_WEEK, saveWeek }) {
                 ))}
                 <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
                   <Btn kind="teal" small style={{ flex: 1 }} onClick={() => updateDay(di, [...d.items, { id: "i" + Date.now(), time: "", text: "" }])}>+ Add item</Btn>
-                  <Btn kind="danger" small onClick={() => resetDay(di)}>Reset day</Btn>
+                  <ConfirmBtn confirmLabel="Reset day?" onConfirm={() => resetDay(di)}>Reset day</ConfirmBtn>
                 </div>
               </div>
             )}
@@ -1155,7 +1154,7 @@ function Schedule({ supps = DEFAULT_SUPPS, week = DEFAULT_WEEK, saveWeek }) {
       })}
       <div style={{ fontSize: 12, color: "var(--mut)", padding: "6px 4px" }}>{rhythm ? `Supplement rhythm: ${rhythm}.` : "No supplements set — add them in the Me tab."} Timed items sort themselves; untimed ones use the arrows.</div>
       <div style={{ padding: "4px" }}>
-        <Btn kind="ghost" small onClick={() => { if (confirm("Reset the ENTIRE week to the default plan? Your customisations will be lost.")) saveWeek(JSON.parse(JSON.stringify(DEFAULT_WEEK))); }}>Reset entire week to default</Btn>
+        <ConfirmBtn confirmLabel="Reset the whole week? Customisations will be lost." onConfirm={() => saveWeek(JSON.parse(JSON.stringify(DEFAULT_WEEK)))}>Reset entire week to default</ConfirmBtn>
       </div>
     </div>
   );
@@ -1295,7 +1294,7 @@ function Meals({ recipes, save, shopping = [], saveShopping, lunchEst = LUNCH_SN
                 <Btn kind="teal" small onClick={() => flash(addRecipes([r]))}>🛒 + List</Btn>
                 <Btn kind="ghost" small onClick={() => logRecipe(r)}>🍽 Log as eaten</Btn>
                 <Btn kind="ghost" small onClick={() => setEditing(r)}>Edit</Btn>
-                <Btn kind="danger" small onClick={() => save(recipes.filter((x) => x.id !== r.id))}>Remove</Btn>
+                <ConfirmBtn onConfirm={() => save(recipes.filter((x) => x.id !== r.id))}>Remove</ConfirmBtn>
               </div>
             </div>
           )}
@@ -1361,7 +1360,7 @@ function Meals({ recipes, save, shopping = [], saveShopping, lunchEst = LUNCH_SN
                   <span style={{ width: 20, height: 20, borderRadius: "50%", flexShrink: 0, borderWidth: 2, borderStyle: "solid", borderColor: it.done ? "#4C8767" : "#A69C8C", background: it.done ? "#4C8767" : "transparent", color: "#fff", fontSize: 12, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center" }}>{it.done ? "✓" : ""}</span>
                   <span style={{ fontSize: 14, color: it.done ? "var(--faint)" : INK, textDecoration: it.done ? "line-through" : "none" }}>{it.text}{it.qty > 1 ? <span style={{ color: "var(--faint)", fontWeight: 700 }}> ×{it.qty}</span> : ""}</span>
                 </button>
-                <button onClick={() => saveShopping(shopping.filter((x) => x.id !== it.id))} style={{ border: "none", background: "none", color: "#B77", cursor: "pointer", fontSize: 15, flexShrink: 0 }}>✕</button>
+                <button onClick={() => saveShopping(shopping.filter((x) => x.id !== it.id))} style={{ border: "none", background: "none", color: "#B77", cursor: "pointer", fontSize: 15, flexShrink: 0, padding: 10, minWidth: 40, minHeight: 40 }}>✕</button>
               </div>
             ))}
             <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
@@ -1376,7 +1375,7 @@ function Meals({ recipes, save, shopping = [], saveShopping, lunchEst = LUNCH_SN
                   window.location.href = "shortcuts://run-shortcut?name=" + encodeURIComponent("Trend Shopping") + "&input=text&text=" + encodeURIComponent(text);
                 }}>→ Reminders</Btn>
               )}
-              {shopping.some((i) => i.done) && <Btn kind="ghost" small onClick={() => saveShopping(shopping.filter((i) => !i.done))}>Clear ticked</Btn>}
+              {shopping.some((i) => i.done) && <ConfirmBtn onConfirm={() => saveShopping(shopping.filter((i) => !i.done))}>Clear ticked</ConfirmBtn>}
               <ConfirmBtn onConfirm={() => { saveShopping([]); toast("List cleared"); }}>Clear all</ConfirmBtn>
             </div>
           </>
@@ -1421,9 +1420,9 @@ function Meals({ recipes, save, shopping = [], saveShopping, lunchEst = LUNCH_SN
         </div>
       </Card>
 
-      <Btn kind="teal" onClick={() => setEditing("new")} style={{ width: "100%", marginBottom: 14 }}>+ Add a recipe</Btn>
       <Section type="breakfast" title="Breakfasts" />
       <Section type="dinner" title="Dinners" />
+      <Btn kind="teal" onClick={() => setEditing("new")} style={{ width: "100%", marginBottom: 14 }}>+ Add a recipe</Btn>
       <div style={{ fontSize: 12, color: "var(--mut)", padding: "0 4px" }}>All batches keep 3 days refrigerated. Cook nights: Sunday (covers Mon–Wed) and Thursday (covers Thu–Sun). Lunch idea: bake the schnitzel rather than fry, go easy on the mayo; on sushi days add extra chicken or a boiled egg.</div>
     </div>
   );
@@ -1685,12 +1684,9 @@ function Profile({ profile, saveProfile, goal, setGoal, entries, photos, savePho
       </Card>
 
       <Card style={{ marginBottom: 14 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-          <div style={{ ...headFont, fontWeight: 800, color: PINE_T, fontSize: 17 }}>Supplements</div>
-          <Btn kind="teal" small onClick={() => saveSupps([...supps, { id: "s" + Date.now(), name: "", slot: "breakfast", note: "" }])}>+ Add</Btn>
-        </div>
+        <div style={{ ...headFont, fontWeight: 800, color: PINE_T, fontSize: 17, marginBottom: 6 }}>Supplements</div>
         <div style={{ fontSize: 13, color: "var(--mut)", marginBottom: 12 }}>These flow through the whole weekly schedule automatically. Check changes with your GP or pharmacist — the app tracks timing, it doesn't give medical advice.</div>
-        {supps.length === 0 && <div style={{ color: "var(--mut)", fontSize: 14 }}>No supplements — add one above if you take any.</div>}
+        {supps.length === 0 && <div style={{ color: "var(--mut)", fontSize: 14, marginBottom: 12 }}>No supplements — add one below if you take any.</div>}
         {supps.map((s) => (
           <div key={s.id} style={{ borderTop: "1px solid #EAE2D3", padding: "10px 0", display: "grid", gap: 8 }}>
             <div style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr auto", gap: 8, alignItems: "center" }}>
@@ -1708,6 +1704,9 @@ function Profile({ profile, saveProfile, goal, setGoal, entries, photos, savePho
             <input placeholder="Note (e.g. take with food, 2 hrs clear of the multi)" value={s.note || ""} onChange={(e) => saveSupps(supps.map((x) => x.id === s.id ? { ...x, note: e.target.value } : x))} style={{ ...inputStyle, minWidth: 0, padding: "8px 10px", fontSize: 13, color: "var(--mut)" }} />
           </div>
         ))}
+        <div style={{ marginTop: 10 }}>
+          <Btn kind="teal" small onClick={() => saveSupps([...supps, { id: "s" + Date.now(), name: "", slot: "breakfast", note: "" }])}>+ Add supplement</Btn>
+        </div>
       </Card>
 
       <Card style={{ marginBottom: 14 }}>
@@ -1865,7 +1864,7 @@ function PhotoThumb({ photo, onRemove }) {
       </div>
       <div style={{ fontSize: 11, color: "var(--mut)", marginTop: 3, display: "flex", justifyContent: "space-between" }}>
         <span>{fmtDay(photo.date)}{photo.weight ? ` · ${photo.weight}kg` : ""}</span>
-        <button onClick={onRemove} style={{ border: "none", background: "none", color: "#B77", cursor: "pointer", padding: 0 }}>✕</button>
+        <ConfirmBtn confirmLabel="Delete?" onConfirm={onRemove} style={{ padding: "2px 8px", fontSize: 11 }}>✕</ConfirmBtn>
       </div>
     </div>
   );
@@ -1908,9 +1907,9 @@ function daysSinceDose(glp, dateISO) {
   return Math.round((new Date(dateISO) - new Date(inj[inj.length - 1])) / 86400000);
 }
 
-function TapScale({ value = 0, max = 10, onChange, accent = "#C9922B", size = 27 }) {
+function TapScale({ value = 0, max = 10, onChange, accent = "#C9922B", size = 38 }) {
   return (
-    <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+    <div style={{ display: "flex", gap: 7, flexWrap: "wrap" }}>
       {Array.from({ length: max }).map((_, i) => {
         const v = i + 1, on = (value || 0) >= v;
         return (
@@ -2144,7 +2143,7 @@ function Glp({ glp = {}, saveGlp, accent = "#C9922B", water = {}, saveWater, set
         <div style={{ borderTop: "1px solid rgba(120,106,84,0.22)", paddingTop: 10, marginTop: 4 }}>
           <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
             <input type="time" value={mealTime} onChange={(e) => setMealTime(e.target.value)} style={{ ...inputStyle, width: 100, minWidth: 0, padding: "8px 6px", fontSize: 13, WebkitAppearance: "none", appearance: "none" }} />
-            <TapScale value={mealEnergy} max={10} accent={accent} size={24} onChange={setMealEnergy} />
+            <TapScale value={mealEnergy} max={10} accent={accent} size={34} onChange={setMealEnergy} />
             <Btn kind="teal" small onClick={() => { if (mealEnergy) { setDay({ meals: [...(day.meals || []), { id: "m" + Date.now(), time: mealTime, energy: mealEnergy }] }); setMealEnergy(0); } }}>Add</Btn>
           </div>
           <div style={{ fontSize: 11, color: "var(--faint)", marginTop: 5 }}>Log meal time, then rate your energy ~30 min after eating. No calories — just the pattern.</div>
@@ -2322,12 +2321,12 @@ const RESPONSIVE_CSS = `
 // ---------- App shell ----------
 const TABS = [
   { id: "today", label: "Today", icon: "☀" },
-  { id: "dash", label: "Trends", icon: "◧" },
-  { id: "log", label: "Daily Log", icon: "✎" },
-  { id: "glp", label: "GLP-1", icon: "✚" },
   { id: "habits", label: "Habits", icon: "✓" },
+  { id: "log", label: "Daily Log", icon: "✎" },
   { id: "week", label: "Schedule", icon: "▤" },
   { id: "meals", label: "Meals", icon: "◍" },
+  { id: "dash", label: "Trends", icon: "◧" },
+  { id: "glp", label: "GLP-1", icon: "✚" },
   { id: "me", label: "Me", icon: "◉" },
 ];
 
@@ -2475,8 +2474,8 @@ export default function HealthTracker() {
       {loaded && <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: "transparent", padding: "0 12px calc(10px + env(safe-area-inset-bottom))", pointerEvents: "none" }}>
         <div className="tt-tabs" style={{ background: "var(--surface)", pointerEvents: "auto" }}>
         {TABS.filter((t) => (t.id === "today" || t.id === "me") ? true : t.id === "glp" ? !!profile.glpEnabled : tabsEnabled[t.id] !== false).map((t) => (
-          <button key={t.id} onClick={() => setTab(t.id)} style={{ background: "none", border: "none", cursor: "pointer", padding: "2px 3px", display: "flex", flexDirection: "column", alignItems: "center", gap: 2, flexShrink: 0, ...font }}>
-            <span style={{ width: 30, height: 30, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14,
+          <button key={t.id} onClick={() => setTab(t.id)} style={{ background: "none", border: "none", cursor: "pointer", padding: "5px 6px", display: "flex", flexDirection: "column", alignItems: "center", gap: 2, flexShrink: 0, minWidth: 44, minHeight: 44, justifyContent: "center", ...font }}>
+            <span style={{ width: 32, height: 32, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14,
               background: tab === t.id ? "var(--teal-soft)" : "transparent",
               color: tab === t.id ? "var(--pine-t)" : "var(--mut)" }}>{t.icon}</span>
             <span style={{ fontSize: 8.5, fontWeight: tab === t.id ? 800 : 500, color: tab === t.id ? "var(--ink)" : "var(--faint)", whiteSpace: "nowrap", ...headFont }}>{t.label}</span>
