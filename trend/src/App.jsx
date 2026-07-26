@@ -2097,7 +2097,8 @@ const RESPONSIVE_CSS = `
   .tt-shell { max-width: 760px; margin: 0 auto; padding: calc(18px + env(safe-area-inset-top)) 16px 104px; }
   .tt-card { border: 1px solid #E8E0D2; }
   .tt-dark .tt-card { border: 1px solid #2A241C; }
-  .tt-tabs { display: flex; gap: 2px; padding: 7px 10px; border-radius: 999px; width: fit-content; max-width: calc(100% - 24px); margin: 0 auto; border: 1px solid #E8E0D2; }
+  .tt-tabs { display: flex; gap: 0; padding: 6px 4px; border-radius: 999px; width: fit-content; max-width: calc(100% - 16px); margin: 0 auto; border: 1px solid #E8E0D2; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+  .tt-tabs::-webkit-scrollbar { display: none; }
   .tt-dark .tt-tabs { border: 1px solid #2A241C; }
   @media (min-width: 1020px) {
     .tt-shell { max-width: 1150px; padding: calc(24px + env(safe-area-inset-top)) 26px 104px; }
@@ -2274,11 +2275,11 @@ export default function HealthTracker() {
       {loaded && <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: "transparent", padding: "0 12px calc(10px + env(safe-area-inset-bottom))", pointerEvents: "none" }}>
         <div className="tt-tabs" style={{ background: "var(--surface)", pointerEvents: "auto" }}>
         {TABS.filter((t) => (t.id === "today" || t.id === "me") ? true : t.id === "glp" ? !!profile.glpEnabled : tabsEnabled[t.id] !== false).map((t) => (
-          <button key={t.id} onClick={() => setTab(t.id)} style={{ background: "none", border: "none", cursor: "pointer", padding: "2px 5px", display: "flex", flexDirection: "column", alignItems: "center", gap: 2, ...font }}>
-            <span style={{ width: 34, height: 34, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15,
+          <button key={t.id} onClick={() => setTab(t.id)} style={{ background: "none", border: "none", cursor: "pointer", padding: "2px 3px", display: "flex", flexDirection: "column", alignItems: "center", gap: 2, flexShrink: 0, ...font }}>
+            <span style={{ width: 30, height: 30, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14,
               background: tab === t.id ? "var(--teal-soft)" : "transparent",
               color: tab === t.id ? "var(--pine-t)" : "var(--mut)" }}>{t.icon}</span>
-            <span style={{ fontSize: 8.5, fontWeight: tab === t.id ? 800 : 500, color: tab === t.id ? "var(--ink)" : "var(--faint)", ...headFont }}>{t.label}</span>
+            <span style={{ fontSize: 8.5, fontWeight: tab === t.id ? 800 : 500, color: tab === t.id ? "var(--ink)" : "var(--faint)", whiteSpace: "nowrap", ...headFont }}>{t.label}</span>
           </button>
         ))}
         </div>
