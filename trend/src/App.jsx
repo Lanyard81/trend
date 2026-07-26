@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from "react";
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend, ReferenceLine } from "recharts";
+import { LineChart, ComposedChart, Line, Bar, Scatter, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend, ReferenceLine } from "recharts";
 
 // ---------- constants ----------
 const HEIGHT_M = 1.78;
@@ -353,17 +353,19 @@ function calcStreak(entries) {
 function isHoliday(dateISO, holidays = []) {
   return holidays.some((h) => dateISO >= h.s && (!h.e || dateISO <= h.e));
 }
-function buildCsv(entries, water = {}, glp = {}, workouts = [], heightM = 1.78) {
-  const dates = new Set([...entries.map((e) => e.date), ...Object.keys(water), ...Object.keys(glp), ...workouts.map((w) => w.date)]);
+function buildCsv(entries, water = {}, glp = {}, workouts = [], heightM = 1.78, foodLog = {}) {
+  const dates = new Set([...entries.map((e) => e.date), ...Object.keys(water), ...Object.keys(glp), ...workouts.map((w) => w.date), ...Object.keys(foodLog)]);
   const esc = (v) => { const s = String(v ?? ""); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
-  const rows = [["Date", "Weight kg", "Body fat %", "Waist cm", "Neck cm", "Chest cm", "BMI", "Water glasses", "Injection day", "Dose", "Site", "Symptom load", "Symptoms", "Food noise", "Fibre g", "Mood", "Bowel", "Workouts", "Note"]];
+  const rows = [["Date", "Weight kg", "Body fat %", "Waist cm", "Neck cm", "Chest cm", "BMI", "Water glasses", "Injection day", "Dose", "Site", "Symptom load", "Symptoms", "Food noise", "Fibre g", "Mood", "Bowel", "Workouts", "Logged cal", "Logged protein g", "Logged carbs g", "Logged fat g", "Note"]];
   [...dates].sort().forEach((d) => {
     const e = entries.find((x) => x.date === d) || {};
     const g = glp[d] || {};
     const syms = Object.entries(g.symptoms || {}).filter(([, v]) => v > 0);
     const load = syms.reduce((a, [, v]) => a + v, 0);
     const wos = workouts.filter((w) => w.date === d).map((w) => w.name).join(" + ");
-    rows.push([d, e.weight ?? "", e.bodyFat ?? "", e.waist ?? "", e.neck ?? "", e.chest ?? "", e.weight ? (e.weight / (heightM * heightM)).toFixed(1) : "", water[d] ?? "", g.injection ? "Y" : "", g.med ? `${g.med.name || ""} ${g.med.dose || ""}`.trim() : "", g.site || "", load || "", syms.map(([s, v]) => `${s}:${v}`).join("; "), g.foodNoise ?? "", g.fibre ?? "", g.mood ?? "", g.bowel === true ? "Y" : g.bowel === false ? "N" : "", wos, [e.note, g.note].filter(Boolean).join(" | ")]);
+    const log = foodLog[d] || [];
+    const logTot = log.reduce((acc, it) => ({ cal: acc.cal + (it.cal || 0), p: acc.p + (it.p || 0), c: acc.c + (it.c || 0), f: acc.f + (it.f || 0) }), { cal: 0, p: 0, c: 0, f: 0 });
+    rows.push([d, e.weight ?? "", e.bodyFat ?? "", e.waist ?? "", e.neck ?? "", e.chest ?? "", e.weight ? (e.weight / (heightM * heightM)).toFixed(1) : "", water[d] ?? "", g.injection ? "Y" : "", g.med ? `${g.med.name || ""} ${g.med.dose || ""}`.trim() : "", g.site || "", load || "", syms.map(([s, v]) => `${s}:${v}`).join("; "), g.foodNoise ?? "", g.fibre ?? "", g.mood ?? "", g.bowel === true ? "Y" : g.bowel === false ? "N" : "", wos, log.length ? logTot.cal : "", log.length ? logTot.p : "", log.length ? logTot.c : "", log.length ? logTot.f : "", [e.note, g.note].filter(Boolean).join(" | ")]);
   });
   return rows.map((r) => r.map(esc).join(",")).join("\n");
 }
@@ -611,6 +613,28 @@ function Dashboard({ entries, habits, goal, setGoal, heightM = HEIGHT_M, profile
     : wkChange <= 0.15 ? "Scales flat this week — usually water. Check the habit grid, hold the plan."
     : "Up this week. One week is noise, two is a signal — review the calorie target.";
 
+  // ---- water: last 14 days ----
+  const waterData = Array.from({ length: 14 }).map((_, i) => {
+    const iso = new Date(Date.now() - (13 - i) * dayMs).toISOString().slice(0, 10);
+    return { date: fmtDay(iso), cups: water[iso] || 0 };
+  });
+
+  // ---- combined weight / habits / GLP-1 view ----
+  const habitPctForDate = (iso) => {
+    const dow = (new Date(iso + "T12:00").getDay() + 6) % 7;
+    const dayKey = DAYS[dow];
+    const w = habits[weekKey(new Date(iso + "T12:00"))];
+    const list = w?.list;
+    if (!list || !list.length) return null;
+    const doneCount = list.filter((h) => (w.checks?.[h] || {})[dayKey]).length;
+    return Math.round((doneCount / list.length) * 100);
+  };
+  const combinedData = chartData.map((d, i) => {
+    const iso = sorted[i].date;
+    const g = glp[iso] || {};
+    return { ...d, habitPct: habitPctForDate(iso), injectionMarker: g.injection ? d.avg7 : null };
+  });
+
   return (
     <div className="tt-cols">
       {/* Scoreboard hero */}
@@ -653,6 +677,40 @@ function Dashboard({ entries, habits, goal, setGoal, heightM = HEIGHT_M, profile
           <div><span style={{ fontSize: 12, color: "var(--mut)" }}>Workouts logged</span><div style={{ ...numFont, fontSize: 24, fontWeight: 700 }}>{woThisWeek}</div></div>
         </div>
         <div style={{ fontSize: 13.5, color: INK }}>{verdict}</div>
+      </Card>
+
+      <Card style={{ marginBottom: 14 }}>
+        <div style={{ fontWeight: 700, marginBottom: 4, color: PINE_T }}>Weight vs habits{profile.glpEnabled ? " & GLP-1 doses" : ""}</div>
+        <div style={{ fontSize: 12, color: "var(--mut)", marginBottom: 8 }}>Daily habit completion against your 7-day weight trend{profile.glpEnabled ? " — red dots mark injection days" : ""} — a quick way to see whether the good weeks line up.</div>
+        {combinedData.length < 2 ? <div style={{ color: "var(--mut)", fontSize: 14 }}>Log weigh-ins and habits together and this appears here.</div> : (
+          <ResponsiveContainer width="100%" height={220}>
+            <ComposedChart data={combinedData} margin={{ top: 5, right: 8, left: -18, bottom: 0 }}>
+              <CartesianGrid stroke={cGrid} strokeDasharray="3 3" />
+              <XAxis dataKey="date" tick={{ fontSize: 10, fill: cTick }} interval="preserveStartEnd" />
+              <YAxis yAxisId="w" domain={["auto", "auto"]} tick={{ fontSize: 11, fill: cTick }} />
+              <YAxis yAxisId="h" orientation="right" domain={[0, 100]} tick={{ fontSize: 10, fill: cTick }} width={30} />
+              <Tooltip contentStyle={{ background: "var(--surface)", border: "1px solid rgba(120,106,84,0.22)", borderRadius: 8, color: "var(--ink)" }} labelStyle={{ color: "var(--ink)" }} />
+              <Legend wrapperStyle={{ fontSize: 12, color: "var(--mut)" }} />
+              <Bar yAxisId="h" dataKey="habitPct" name="Habits done that day (%)" fill={dark ? "#3A3226" : "#E2D9C8"} radius={[3, 3, 0, 0]} />
+              <Line yAxisId="w" type="monotone" dataKey="avg7" name="7-day avg weight" stroke={cAvg} strokeWidth={2} dot={false} />
+              {profile.glpEnabled && <Scatter yAxisId="w" dataKey="injectionMarker" name="Injection day" fill="#B23B2E" />}
+            </ComposedChart>
+          </ResponsiveContainer>
+        )}
+      </Card>
+
+      <Card style={{ marginBottom: 14 }}>
+        <div style={{ fontWeight: 700, marginBottom: 8, color: PINE_T }}>Water — last 14 days</div>
+        <ResponsiveContainer width="100%" height={140}>
+          <ComposedChart data={waterData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
+            <CartesianGrid stroke={cGrid} strokeDasharray="3 3" vertical={false} />
+            <XAxis dataKey="date" tick={{ fontSize: 10, fill: cTick }} interval={1} />
+            <YAxis domain={[0, 8]} tick={{ fontSize: 10, fill: cTick }} width={24} />
+            <ReferenceLine y={8} stroke={cAvg} strokeDasharray="4 4" />
+            <Tooltip contentStyle={{ background: "var(--surface)", border: "1px solid rgba(120,106,84,0.22)", borderRadius: 8, color: "var(--ink)" }} labelStyle={{ color: "var(--ink)" }} formatter={(v) => [v + " cups", "Water"]} />
+            <Bar dataKey="cups" name="Cups" fill={dark ? pal.accD : pal.accL} radius={[4, 4, 0, 0]} />
+          </ComposedChart>
+        </ResponsiveContainer>
       </Card>
 
       {(() => {
@@ -802,6 +860,13 @@ function DailyLog({ entries, save, heightM = HEIGHT_M, workouts = [], saveWorkou
     const ex = last?.exercises.find((e) => e.name === exName);
     return ex ? `${ex.weight}kg ${ex.sets}×${ex.reps}` : null;
   };
+  const isPr = (name, exName, weight) => {
+    const w = parseFloat(weight);
+    if (!w) return false;
+    const best = pastWo.filter((wk) => wk.name === name).flatMap((wk) => wk.exercises)
+      .filter((e) => e.name === exName && e.weight).map((e) => parseFloat(e.weight));
+    return best.length > 0 && w > Math.max(...best);
+  };
   const saveWo = () => {
     const clean = wo.exercises.filter((e) => e.name.trim());
     if (!clean.length) { setWo(null); return; }
@@ -862,6 +927,7 @@ function DailyLog({ entries, save, heightM = HEIGHT_M, workouts = [], saveWorkou
                 <div style={{ minWidth: 0 }}>
                   <input value={e.name} placeholder="Exercise" onChange={(ev) => setEx(i, { name: ev.target.value })} style={{ ...miniInput, textAlign: "left" }} />
                   {lastOf(wo.name, e.name) && <div style={{ fontSize: 10, color: "var(--faint)", marginTop: 1 }}>last: {lastOf(wo.name, e.name)}</div>}
+                  {isPr(wo.name, e.name, e.weight) && <div style={{ fontSize: 10, color: GOOD, fontWeight: 700, marginTop: 1 }}>🎉 New best</div>}
                 </div>
                 <input type="number" inputMode="decimal" value={e.weight} onChange={(ev) => setEx(i, { weight: ev.target.value })} style={miniInput} />
                 <input type="number" inputMode="numeric" value={e.sets} onChange={(ev) => setEx(i, { sets: ev.target.value })} style={miniInput} />
@@ -1104,22 +1170,43 @@ function MacroChips({ r, size = 12 }) {
   );
 }
 
-function Meals({ recipes, save, shopping = [], saveShopping, lunchEst = LUNCH_SNACKS_DEFAULT, macroT = MACRO_TARGETS, toast = () => {} }) {
+function Meals({ recipes, save, shopping = [], saveShopping, lunchEst = LUNCH_SNACKS_DEFAULT, macroT = MACRO_TARGETS, toast = () => {}, foodLog = {}, saveFoodLog = () => {} }) {
   const [openId, setOpenId] = useState(null);
   const [editing, setEditing] = useState(null);
-  const [rotation, setRotation] = useState({ b: null, d: null });
+  const [rotation, setRotation] = useState({ b: [], d: [] });
   const [newItem, setNewItem] = useState("");
+  const [customLog, setCustomLog] = useState({ name: "", cal: "", p: "", c: "", f: "" });
   const recipeLines = (r) => r.ingredients.split("\n").map((l) => l.trim())
     .filter((l) => l && !PANTRY_RE.test(l) && !/to serve|pantry|at blend time/i.test(l));
-  const addRecipes = (list) => {
-    const have = new Set(shopping.map((it) => it.text.toLowerCase()));
-    const fresh = [...new Set(list.filter(Boolean).flatMap(recipeLines))].filter((l) => !have.has(l.toLowerCase()));
-    if (fresh.length) saveShopping([...shopping, ...fresh.map((t, i) => ({ id: "sh" + Date.now() + i, text: t, done: false }))]);
-    return fresh.length;
+  const addItems = (texts) => {
+    const clean = texts.filter(Boolean).map((t) => t.trim()).filter(Boolean);
+    if (!clean.length) return 0;
+    const counts = {};
+    clean.forEach((t) => { const k = t.toLowerCase(); counts[k] = (counts[k] || 0) + 1; });
+    const updated = [...shopping];
+    Object.keys(counts).forEach((key) => {
+      const idx = updated.findIndex((it) => it.text.trim().toLowerCase() === key);
+      if (idx >= 0) updated[idx] = { ...updated[idx], qty: (updated[idx].qty || 1) + counts[key] };
+      else updated.push({ id: "sh" + Date.now() + Math.random().toString(36).slice(2), text: clean.find((t) => t.toLowerCase() === key), done: false, qty: counts[key] });
+    });
+    saveShopping(updated);
+    return Object.keys(counts).length;
   };
-  const flash = (n) => toast(n ? `Added ${n} item${n > 1 ? "s" : ""}` : "Already on the list");
-  useEffect(() => { (async () => setRotation(await sGet("rotation", { b: null, d: null })))(); }, []);
+  const addRecipes = (list) => addItems(list.filter(Boolean).flatMap(recipeLines));
+  const flash = (n) => toast(n ? `Added ${n} item${n > 1 ? "s" : ""}` : "Nothing to add — pick a recipe first");
+  useEffect(() => { (async () => {
+    const r = await sGet("rotation", { b: [], d: [] });
+    setRotation({ b: Array.isArray(r.b) ? r.b : (r.b ? [r.b] : []), d: Array.isArray(r.d) ? r.d : (r.d ? [r.d] : []) });
+  })(); }, []);
   const saveRotation = (v) => { setRotation(v); sSet("rotation", v); };
+  const toggleRotation = (key, id) => {
+    setRotation((prev) => {
+      const cur = prev[key] || [];
+      const next = { ...prev, [key]: cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id] };
+      sSet("rotation", next);
+      return next;
+    });
+  };
 
   const blank = { id: null, type: "dinner", name: "", cal: "", p: "", c: "", f: "", serves: "6 serves", ingredients: "", method: "" };
   const upsert = (r) => {
@@ -1128,9 +1215,23 @@ function Meals({ recipes, save, shopping = [], saveShopping, lunchEst = LUNCH_SN
     save(next); setEditing(null);
   };
 
-  const bPick = recipes.find((r) => r.id === rotation.b);
-  const dPick = recipes.find((r) => r.id === rotation.d);
-  const tot = (k) => (bPick?.[k] || 0) + (dPick?.[k] || 0) + (lunchEst[k] || 0);
+  const bPicks = (rotation.b || []).map((id) => recipes.find((r) => r.id === id)).filter(Boolean);
+  const dPicks = (rotation.d || []).map((id) => recipes.find((r) => r.id === id)).filter(Boolean);
+  const avgOf = (picks, k) => picks.length ? picks.reduce((s, r) => s + (r[k] || 0), 0) / picks.length : 0;
+  const tot = (k) => Math.round(avgOf(bPicks, k) + avgOf(dPicks, k) + (lunchEst[k] || 0));
+
+  const todayLog = foodLog[todayISO()] || [];
+  const logTotals = todayLog.reduce((acc, it) => ({ cal: acc.cal + (it.cal || 0), p: acc.p + (it.p || 0), c: acc.c + (it.c || 0), f: acc.f + (it.f || 0) }), { cal: 0, p: 0, c: 0, f: 0 });
+  const logRecipe = (r) => {
+    saveFoodLog({ ...foodLog, [todayISO()]: [...todayLog, { id: "fl" + Date.now() + Math.random().toString(36).slice(2), name: r.name, cal: r.cal, p: r.p, c: r.c, f: r.f }] });
+    toast(`Logged ${r.name}`);
+  };
+  const removeLogItem = (id) => saveFoodLog({ ...foodLog, [todayISO()]: todayLog.filter((x) => x.id !== id) });
+  const addCustomLog = () => {
+    if (!customLog.name.trim()) return;
+    saveFoodLog({ ...foodLog, [todayISO()]: [...todayLog, { id: "fl" + Date.now(), name: customLog.name.trim(), cal: parseInt(customLog.cal) || 0, p: parseInt(customLog.p) || 0, c: parseInt(customLog.c) || 0, f: parseInt(customLog.f) || 0 }] });
+    setCustomLog({ name: "", cal: "", p: "", c: "", f: "" });
+  };
   const MacroBar = ({ label, val, target }) => {
     const pct = Math.min(120, (val / target) * 100);
     const over = val > target * 1.08, under = val < target * 0.9;
@@ -1147,12 +1248,22 @@ function Meals({ recipes, save, shopping = [], saveShopping, lunchEst = LUNCH_SN
     );
   };
 
-  const picker = (type, val, key) => (
-    <select value={val || ""} onChange={(e) => saveRotation({ ...rotation, [key]: e.target.value || null })}
-      style={{ ...inputStyle, minWidth: 0, padding: "9px 10px", fontSize: 14, WebkitAppearance: "none", appearance: "none" }}>
-      <option value="">— pick {type} —</option>
-      {recipes.filter((r) => r.type === type).map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
-    </select>
+  const RotationPicker = ({ type, ids, rkey }) => (
+    <div>
+      <div style={{ fontSize: 11, letterSpacing: 1, textTransform: "uppercase", color: "var(--mut)", fontWeight: 600, marginBottom: 6 }}>{type === "breakfast" ? "Breakfast rotation" : "Dinner rotation"}</div>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+        {recipes.filter((r) => r.type === type).map((r) => {
+          const on = (ids || []).includes(r.id);
+          return (
+            <button key={r.id} onClick={() => toggleRotation(rkey, r.id)} style={{
+              padding: "7px 11px", borderRadius: 16, cursor: "pointer", fontSize: 12.5, fontWeight: 600, ...font,
+              border: on ? "none" : "1.5px solid rgba(120,106,84,0.35)",
+              background: on ? TEAL : "var(--surface)", color: on ? "#fff" : "var(--mut)",
+            }}>{on ? "✓ " : ""}{r.name}</button>
+          );
+        })}
+      </div>
+    </div>
   );
 
   const Section = ({ type, title }) => (
@@ -1180,6 +1291,7 @@ function Meals({ recipes, save, shopping = [], saveShopping, lunchEst = LUNCH_SN
               <div style={{ fontSize: 14, whiteSpace: "pre-line", marginBottom: 12, color: INK }}>{r.method}</div>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                 <Btn kind="teal" small onClick={() => flash(addRecipes([r]))}>🛒 + List</Btn>
+                <Btn kind="ghost" small onClick={() => logRecipe(r)}>🍽 Log as eaten</Btn>
                 <Btn kind="ghost" small onClick={() => setEditing(r)}>Edit</Btn>
                 <Btn kind="danger" small onClick={() => save(recipes.filter((x) => x.id !== r.id))}>Remove</Btn>
               </div>
@@ -1199,10 +1311,11 @@ function Meals({ recipes, save, shopping = [], saveShopping, lunchEst = LUNCH_SN
     <div className="tt-cols">
       <Card style={{ marginBottom: 14, borderLeftWidth: 4, borderLeftStyle: "solid", borderLeftColor: "#2F4A3E" }}>
         <div style={{ ...headFont, fontWeight: 800, color: PINE_T, marginBottom: 8, fontSize: 16 }}>This week's rotation — day macro check</div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 12 }}>
-          <div style={{ minWidth: 0 }}>{picker("breakfast", rotation.b, "b")}</div>
-          <div style={{ minWidth: 0 }}>{picker("dinner", rotation.d, "d")}</div>
+        <div style={{ display: "grid", gap: 12, marginBottom: 12 }}>
+          <RotationPicker type="breakfast" ids={rotation.b} rkey="b" />
+          <RotationPicker type="dinner" ids={rotation.d} rkey="d" />
         </div>
+        <div style={{ fontSize: 11, color: "var(--faint)", marginBottom: 8 }}>Tick as many as you rotate through — the macro check below averages across what's ticked, so "different breakfast Mon/Wed/Fri" works.</div>
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
           <MacroBar label="Protein" val={tot("p")} target={macroT.p} />
           <MacroBar label="Carbs" val={tot("c")} target={macroT.c} />
@@ -1220,7 +1333,7 @@ function Meals({ recipes, save, shopping = [], saveShopping, lunchEst = LUNCH_SN
         </div>
         <div style={{ fontSize: 11, color: "var(--faint)", marginTop: 8 }}>Includes your lunch/snack estimate: {lunchEst.p}P / {lunchEst.c}C / {lunchEst.f}F (edit in Me). Targets: {macroT.p}P / {macroT.c}C / {macroT.f}F{macroT.auto ? " — auto-derived from your calorie target and latest weight" : " — add your details in Me for personalised targets"}.</div>
         <div style={{ marginTop: 10 }}>
-          <Btn kind="teal" small onClick={() => flash(addRecipes([bPick, dPick]))}>🛒 Add both to shopping list</Btn>
+          <Btn kind="teal" small onClick={() => flash(addRecipes([...bPicks, ...dPicks]))}>🛒 Add rotation to shopping list</Btn>
         </div>
       </Card>
 
@@ -1236,20 +1349,20 @@ function Meals({ recipes, save, shopping = [], saveShopping, lunchEst = LUNCH_SN
               <div key={it.id} style={{ display: "flex", alignItems: "center", gap: 9, borderTop: "1px solid rgba(120,106,84,0.22)", padding: "6px 0" }}>
                 <button onClick={() => saveShopping(shopping.map((x) => x.id === it.id ? { ...x, done: !x.done } : x))} style={{ flex: 1, display: "flex", alignItems: "center", gap: 9, background: "none", border: "none", cursor: "pointer", textAlign: "left", padding: 0, ...font }}>
                   <span style={{ width: 20, height: 20, borderRadius: "50%", flexShrink: 0, borderWidth: 2, borderStyle: "solid", borderColor: it.done ? "#4C8767" : "#A69C8C", background: it.done ? "#4C8767" : "transparent", color: "#fff", fontSize: 12, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center" }}>{it.done ? "✓" : ""}</span>
-                  <span style={{ fontSize: 14, color: it.done ? "var(--faint)" : INK, textDecoration: it.done ? "line-through" : "none" }}>{it.text}</span>
+                  <span style={{ fontSize: 14, color: it.done ? "var(--faint)" : INK, textDecoration: it.done ? "line-through" : "none" }}>{it.text}{it.qty > 1 ? <span style={{ color: "var(--faint)", fontWeight: 700 }}> ×{it.qty}</span> : ""}</span>
                 </button>
                 <button onClick={() => saveShopping(shopping.filter((x) => x.id !== it.id))} style={{ border: "none", background: "none", color: "#B77", cursor: "pointer", fontSize: 15, flexShrink: 0 }}>✕</button>
               </div>
             ))}
             <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
               <Btn kind="ghost" small onClick={async () => {
-                const text = shopping.filter((i) => !i.done).map((i) => i.text).join("\n");
+                const text = shopping.filter((i) => !i.done).map((i) => i.text + (i.qty > 1 ? ` x${i.qty}` : "")).join("\n");
                 try { await navigator.clipboard.writeText(text); toast("Copied — paste into any list app"); }
                 catch { toast("Couldn't copy on this device"); }
               }}>Copy list</Btn>
               {/iPad|iPhone|iPod/.test(typeof navigator !== "undefined" ? navigator.userAgent : "") && (
                 <Btn kind="ghost" small onClick={() => {
-                  const text = shopping.filter((i) => !i.done).map((i) => i.text).join("\n");
+                  const text = shopping.filter((i) => !i.done).map((i) => i.text + (i.qty > 1 ? ` x${i.qty}` : "")).join("\n");
                   window.location.href = "shortcuts://run-shortcut?name=" + encodeURIComponent("Trend Shopping") + "&input=text&text=" + encodeURIComponent(text);
                 }}>→ Reminders</Btn>
               )}
@@ -1260,7 +1373,41 @@ function Meals({ recipes, save, shopping = [], saveShopping, lunchEst = LUNCH_SN
         )}
         <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
           <input placeholder="Add your own item…" value={newItem} onChange={(e) => setNewItem(e.target.value)} style={{ ...inputStyle, flex: 1, minWidth: 0, fontSize: 14 }} />
-          <Btn kind="teal" small onClick={() => { if (newItem.trim()) { saveShopping([...shopping, { id: "sh" + Date.now(), text: newItem.trim(), done: false }]); setNewItem(""); } }}>Add</Btn>
+          <Btn kind="teal" small onClick={() => { if (newItem.trim()) { addItems([newItem.trim()]); setNewItem(""); } }}>Add</Btn>
+        </div>
+      </Card>
+
+      <Card style={{ marginBottom: 14 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+          <div style={{ ...headFont, fontWeight: 800, color: PINE_T, fontSize: 16 }}>Today's food log</div>
+          <div style={{ ...numFont, fontSize: 15, fontWeight: 700, color: TEAL }}>{logTotals.cal} cal</div>
+        </div>
+        <div style={{ fontSize: 12, color: "var(--mut)", marginBottom: 10 }}>Tap 🍽 Log as eaten on a recipe below, or add something custom. A running total for today — not a food diary, no search or barcode scanning.</div>
+        {todayLog.length === 0 ? <div style={{ fontSize: 13, color: "var(--mut)", marginBottom: 10 }}>Nothing logged yet today.</div> : (
+          <div style={{ marginBottom: 10 }}>
+            {todayLog.map((it) => (
+              <div key={it.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "1px solid rgba(120,106,84,0.22)", padding: "6px 0", fontSize: 13 }}>
+                <span>{it.name}</span>
+                <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <span style={{ color: "var(--mut)" }}>{it.cal} cal</span>
+                  <button onClick={() => removeLogItem(it.id)} style={{ border: "none", background: "none", color: "#B77", cursor: "pointer" }}>✕</button>
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+        <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 10 }}>
+          <MacroBar label="Protein" val={logTotals.p} target={macroT.p} />
+          <MacroBar label="Carbs" val={logTotals.c} target={macroT.c} />
+          <MacroBar label="Fat" val={logTotals.f} target={macroT.f} />
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "1.6fr 1fr 1fr 1fr 1fr auto", gap: 6 }}>
+          <input placeholder="Item name" value={customLog.name} onChange={(e) => setCustomLog({ ...customLog, name: e.target.value })} style={{ ...inputStyle, minWidth: 0, padding: "8px 8px", fontSize: 13 }} />
+          <input type="number" placeholder="Cal" value={customLog.cal} onChange={(e) => setCustomLog({ ...customLog, cal: e.target.value })} style={{ ...inputStyle, minWidth: 0, padding: "8px 8px", fontSize: 13 }} />
+          <input type="number" placeholder="P" value={customLog.p} onChange={(e) => setCustomLog({ ...customLog, p: e.target.value })} style={{ ...inputStyle, minWidth: 0, padding: "8px 8px", fontSize: 13 }} />
+          <input type="number" placeholder="C" value={customLog.c} onChange={(e) => setCustomLog({ ...customLog, c: e.target.value })} style={{ ...inputStyle, minWidth: 0, padding: "8px 8px", fontSize: 13 }} />
+          <input type="number" placeholder="F" value={customLog.f} onChange={(e) => setCustomLog({ ...customLog, f: e.target.value })} style={{ ...inputStyle, minWidth: 0, padding: "8px 8px", fontSize: 13 }} />
+          <Btn kind="teal" small onClick={addCustomLog}>Add</Btn>
         </div>
       </Card>
 
@@ -1327,7 +1474,7 @@ function calcEnergy(profile, entries) {
   return { bmr: Math.round(bmr), ...opts, target, mode };
 }
 
-function Profile({ profile, saveProfile, goal, setGoal, entries, photos, savePhotos, supps, saveSupps, theme, setTheme, colorTheme, setColorTheme, tabsEnabled, saveTabsEnabled, holidays = [], saveHolidays, water = {}, glp = {}, workouts = [] }) {
+function Profile({ profile, saveProfile, goal, setGoal, entries, photos, savePhotos, supps, saveSupps, theme, setTheme, colorTheme, setColorTheme, tabsEnabled, saveTabsEnabled, holidays = [], saveHolidays, water = {}, glp = {}, workouts = [], foodLog = {} }) {
   const holidayActive = holidays.some((h) => !h.e);
   const set = (k) => (e) => saveProfile({ ...profile, [k]: e.target.value });
   const age = calcAge(profile.dob);
@@ -1507,6 +1654,27 @@ function Profile({ profile, saveProfile, goal, setGoal, entries, photos, savePho
       </Card>
 
       <Card style={{ marginBottom: 14 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
+          <div>
+            <div style={{ ...headFont, fontWeight: 800, color: PINE_T, fontSize: 17 }}>Weigh-in reminder</div>
+            <div style={{ fontSize: 12, color: "var(--mut)", marginTop: 2 }}>A local notification if you haven't logged by your chosen time. There's no server behind this app, so it can only fire while you've opened Trend that day — it can't wake your phone from fully closed. Your browser will ask permission the first time.</div>
+          </div>
+          <Toggle on={!!profile.remindWeighIn} onTap={async () => {
+            if (!profile.remindWeighIn && typeof Notification !== "undefined" && Notification.permission === "default") {
+              await Notification.requestPermission();
+            }
+            saveProfile({ ...profile, remindWeighIn: !profile.remindWeighIn });
+          }} />
+        </div>
+        {profile.remindWeighIn && (
+          <div style={{ marginTop: 10, display: "flex", alignItems: "center", gap: 8 }}>
+            <span style={{ fontSize: 13, color: "var(--mut)" }}>Remind me at</span>
+            <input type="time" value={profile.remindTime || "07:00"} onChange={(e) => saveProfile({ ...profile, remindTime: e.target.value })} style={{ ...inputStyle, width: 120, minHeight: 40 }} />
+          </div>
+        )}
+      </Card>
+
+      <Card style={{ marginBottom: 14 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
           <div style={{ ...headFont, fontWeight: 800, color: PINE_T, fontSize: 17 }}>Supplements</div>
           <Btn kind="teal" small onClick={() => saveSupps([...supps, { id: "s" + Date.now(), name: "", slot: "breakfast", note: "" }])}>+ Add</Btn>
@@ -1653,7 +1821,7 @@ function Profile({ profile, saveProfile, goal, setGoal, entries, photos, savePho
             }} />
           </label>
         </div>
-        <CsvExport csv={() => buildCsv(entries, water, glp, workouts, (parseFloat(profile.heightCm) || 178) / 100)} />
+        <CsvExport csv={() => buildCsv(entries, water, glp, workouts, (parseFloat(profile.heightCm) || 178) / 100, foodLog)} />
         <ResetControls
           resetContent={async () => { await sSet("recipes", DEFAULT_RECIPES); await sSet("week", DEFAULT_WEEK); await sSet("supplements", DEFAULT_SUPPS); await sSet("recipesVersion", 2); window.location.reload(); }}
           eraseAll={() => { const ks = []; for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k.startsWith("tt:")) ks.push(k); } ks.forEach((k) => localStorage.removeItem(k)); window.location.reload(); }}
@@ -2174,6 +2342,7 @@ export default function HealthTracker() {
   const [tabsEnabled, setTabsEnabled] = useState({});
   const [holidays, setHolidays] = useState([]);
   const [schedDone, setSchedDone] = useState({});
+  const [foodLog, setFoodLog] = useState({});
   const [sysDark, setSysDark] = useState(() => typeof window !== "undefined" && window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches);
   const [loaded, setLoaded] = useState(false);
   const [toastMsg, setToastMsg] = useState("");
@@ -2211,6 +2380,7 @@ export default function HealthTracker() {
       setTabsEnabled(await sGet("tabsEnabled", {}));
       setHolidays(await sGet("holidays", []));
       setSchedDone(await sGet("schedDone", {}));
+      setFoodLog(await sGet("foodLog", {}));
       setLoaded(true);
     })();
   }, []);
@@ -2235,6 +2405,7 @@ export default function HealthTracker() {
   const saveHolidays = (v) => { setHolidays(v); sSet("holidays", v); };
 
   const saveSchedDone = (v) => { setSchedDone(v); sSet("schedDone", v); };
+  const saveFoodLog = (v) => { setFoodLog(v); sSet("foodLog", v); };
   useEffect(() => {
     if (!window.matchMedia) return;
     const mq = window.matchMedia("(prefers-color-scheme: dark)");
@@ -2242,6 +2413,25 @@ export default function HealthTracker() {
     mq.addEventListener ? mq.addEventListener("change", fn) : mq.addListener(fn);
     return () => { mq.removeEventListener ? mq.removeEventListener("change", fn) : mq.removeListener(fn); };
   }, []);
+
+  // ---- weigh-in reminder: local notification only, no server, so it only fires while the app has been opened that day ----
+  useEffect(() => {
+    if (!loaded || !profile.remindWeighIn || typeof Notification === "undefined") return;
+    const check = async () => {
+      if (Notification.permission !== "granted") return;
+      const now = new Date();
+      const [rh, rm] = (profile.remindTime || "07:00").split(":").map(Number);
+      if (now.getHours() < rh || (now.getHours() === rh && now.getMinutes() < rm)) return;
+      if (entries.some((e) => e.date === todayISO())) return;
+      const lastNotified = await sGet("lastWeighInNotify", "");
+      if (lastNotified === todayISO()) return;
+      new Notification("Trend", { body: "Morning weigh-in not logged yet — takes 10 seconds.", tag: "weigh-in" });
+      sSet("lastWeighInNotify", todayISO());
+    };
+    check();
+    const id = setInterval(check, 5 * 60 * 1000);
+    return () => clearInterval(id);
+  }, [loaded, profile.remindWeighIn, profile.remindTime, entries]);
   const dark = theme === "dark" || (theme === "auto" && sysDark);
   const pal = COLOR_THEMES.find((t) => t.id === colorTheme) || COLOR_THEMES[0];
   const macroT = calcMacros(profile, entries);
@@ -2265,8 +2455,8 @@ export default function HealthTracker() {
             {tab === "glp" && profile.glpEnabled && <Glp glp={glp} saveGlp={saveGlp} accent={dark ? pal.accD : pal.accL} water={water} saveWater={saveWater} settings={glpSettings} saveSettings={saveGlpSettings} dark={dark} />}
             {tab === "habits" && <Habits habits={habits} save={saveHabits} />}
             {tab === "week" && <Schedule supps={supps} week={week} saveWeek={saveWeek} />}
-            {tab === "meals" && <Meals recipes={recipes} save={saveRecipes} shopping={shopping} saveShopping={saveShopping} lunchEst={profile.lunchMacros || LUNCH_SNACKS_DEFAULT} macroT={macroT} toast={showToast} />}
-            {tab === "me" && <Profile profile={profile} saveProfile={saveProfile} goal={goal} setGoal={setGoal} entries={entries} photos={photos} savePhotos={savePhotos} supps={supps} saveSupps={saveSupps} theme={theme} setTheme={setTheme} colorTheme={colorTheme} setColorTheme={setColorTheme} tabsEnabled={tabsEnabled} saveTabsEnabled={saveTabsEnabled} holidays={holidays} saveHolidays={saveHolidays} water={water} glp={glp} workouts={workouts} />}
+            {tab === "meals" && <Meals recipes={recipes} save={saveRecipes} shopping={shopping} saveShopping={saveShopping} lunchEst={profile.lunchMacros || LUNCH_SNACKS_DEFAULT} macroT={macroT} toast={showToast} foodLog={foodLog} saveFoodLog={saveFoodLog} />}
+            {tab === "me" && <Profile profile={profile} saveProfile={saveProfile} goal={goal} setGoal={setGoal} entries={entries} photos={photos} savePhotos={savePhotos} supps={supps} saveSupps={saveSupps} theme={theme} setTheme={setTheme} colorTheme={colorTheme} setColorTheme={setColorTheme} tabsEnabled={tabsEnabled} saveTabsEnabled={saveTabsEnabled} holidays={holidays} saveHolidays={saveHolidays} water={water} glp={glp} workouts={workouts} foodLog={foodLog} />}
           </>
         )}
       </div>
