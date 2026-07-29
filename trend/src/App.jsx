@@ -2281,6 +2281,8 @@ function ResetControls({ resetContent, eraseAll }) {
 
 const RESPONSIVE_CSS = `
   button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible, a:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
+  a[x-apple-data-detectors], a[x-apple-data-detectors]:link, a[x-apple-data-detectors]:visited { color: inherit !important; text-decoration: inherit !important; }
+  a[x-apple-data-detectors] * { color: inherit !important; }
   .tt-shell { max-width: 760px; margin: 0 auto; padding: calc(18px + env(safe-area-inset-top)) 16px 104px; }
   .tt-card { border: 1px solid #E8E0D2; }
   .tt-dark .tt-card { border: 1px solid #2A241C; }
