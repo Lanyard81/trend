@@ -11,8 +11,8 @@ const INK = "var(--ink)";
 const AMBER = "var(--amber)";
 const GOOD = "var(--good)";
 const NEUTRAL_VARS = {
-  light: { "--bg": "#F6F1E7", "--surface": "#FFFDF8", "--surface2": "#FBF7EE", "--ink": "#2B2620", "--amber": "#A97328", "--good": "#4C8767", "--mut": "#6B6055", "--faint": "#A69C8C", "--line": "#E8E0D2", "--line2": "#E2D9C8", "--bord": "#E8E0D2", "--warn-bg": "#FBF0DE", "--warn-t": "#8A5A16", "--gold": "#8A6D3B" },
-  dark: { "--bg": "#000000", "--surface": "#171310", "--surface2": "#1E1811", "--ink": "#F3EDE3", "--amber": "#E0AA4E", "--good": "#5FA97E", "--mut": "#C9BEAE", "--faint": "#7A6F60", "--line": "#2A241C", "--line2": "#322A20", "--bord": "#332B21", "--warn-bg": "#241B08", "--warn-t": "#E5B876", "--gold": "#C7A15F" },
+  light: { "--bg": "#F6F1E7", "--surface": "#FFFDF8", "--surface2": "#FBF7EE", "--ink": "#2B2620", "--amber": "#A97328", "--good": "#4C8767", "--mut": "#6B6055", "--faint": "#7C7263", "--line": "#E8E0D2", "--line2": "#E2D9C8", "--bord": "#E8E0D2", "--warn-bg": "#FBF0DE", "--warn-t": "#8A5A16", "--gold": "#8A6D3B" },
+  dark: { "--bg": "#000000", "--surface": "#171310", "--surface2": "#1E1811", "--ink": "#F3EDE3", "--amber": "#E0AA4E", "--good": "#5FA97E", "--mut": "#C9BEAE", "--faint": "#948970", "--line": "#2A241C", "--line2": "#322A20", "--bord": "#332B21", "--warn-bg": "#241B08", "--warn-t": "#E5B876", "--gold": "#C7A15F" },
 };
 const COLOR_THEMES = [
   { id: "forest", name: "Forest & Mustard", primary: "#2F4A3E", ptD: "#6FA98A", accL: "#C9922B", accD: "#E0AA4E", onAL: "#2B2011", onAD: "#241A08" },
@@ -190,8 +190,8 @@ const headFont = { fontFamily: '"SF Pro Rounded", ui-rounded, "Nunito", "Segoe U
 
 const numFont = { fontFamily: "'Barlow Condensed', 'Arial Narrow', -apple-system, sans-serif" };
 
-function Card({ children, style, className }) {
-  return <div className={"tt-card" + (className ? " " + className : "")} style={{ background: "var(--surface)", borderRadius: 18, padding: 18, ...style }}>{children}</div>;
+function Card({ children, style, className, id }) {
+  return <div id={id} className={"tt-card" + (className ? " " + className : "")} style={{ background: "var(--surface)", borderRadius: 18, padding: 18, ...style }}>{children}</div>;
 }
 function Stat({ label, value, unit, accent, sub }) {
   return (
@@ -228,7 +228,7 @@ function ConfirmBtn({ onConfirm, children, confirmLabel = "Confirm delete?", sma
 
 function Toast({ msg }) {
   return (
-    <div style={{
+    <div role="status" aria-live="polite" style={{
       position: "fixed", left: "50%", bottom: "calc(96px + env(safe-area-inset-bottom))", transform: "translateX(-50%) translateY(" + (msg ? "0px" : "16px") + ")",
       background: "#221D18", color: "#F2ECE0", fontSize: 13, fontWeight: 700, padding: "10px 20px", borderRadius: 999,
       opacity: msg ? 1 : 0, pointerEvents: "none", transition: "all .25s ease", zIndex: 50, whiteSpace: "nowrap", ...font,
@@ -522,7 +522,7 @@ function Today({ profile, entries, saveEntries, habits, saveHabits, week, supps,
         <div style={{ fontSize: 11, letterSpacing: 1, textTransform: "uppercase", color: "var(--mut)", fontWeight: 600 }}>Water · <span style={{ color: cups >= 8 ? GOOD : TEAL, fontWeight: 700 }}>{cups}/8</span></div>
         <div style={{ display: "flex", gap: 6, marginTop: 6 }}>
           {Array.from({ length: 8 }).map((_, i) => (
-            <button key={i} onClick={() => setCups(i + 1 === cups ? i : i + 1)} style={{
+            <button key={i} onClick={() => setCups(i + 1 === cups ? i : i + 1)} aria-label={`Water: ${i + 1} of 8 cups${i < cups ? ", filled" : ""}`} aria-pressed={i < cups} style={{
               flex: 1, minWidth: 0, height: 44, borderRadius: "0 0 9px 9px", cursor: "pointer",
               WebkitAppearance: "none", appearance: "none", padding: 0, boxSizing: "border-box",
               borderWidth: 2, borderStyle: "solid",
@@ -542,10 +542,10 @@ function Today({ profile, entries, saveEntries, habits, saveHabits, week, supps,
           {hList.map((h) => {
             const on = (wk.checks[h] || {})[dayKey];
             return (
-              <button key={h} onClick={() => toggleHabit(h)} style={{
+              <button key={h} onClick={() => toggleHabit(h)} aria-pressed={on} style={{
                 padding: "9px 13px", borderRadius: 20, cursor: "pointer", fontSize: 13, fontWeight: 600, ...font,
                 border: on ? "none" : "1.5px solid rgba(120,106,84,0.35)",
-                background: on ? TEAL : "var(--surface)", color: on ? "#fff" : "var(--mut)",
+                background: on ? TEAL : "var(--surface)", color: on ? "var(--on-accent)" : "var(--mut)",
               }}>{on ? "✓ " : ""}{h}</button>
             );
           })}
@@ -917,7 +917,7 @@ function DailyLog({ entries, save, heightM = HEIGHT_M, workouts = [], saveWorkou
                   <div style={{ fontWeight: 600, fontSize: 14 }}>{w.name} <span style={{ color: "var(--faint)", fontWeight: 400, fontSize: 12 }}>· {fmtDay(w.date)}</span></div>
                   <div style={{ fontSize: 12.5, color: "var(--mut)" }}>{w.exercises.map((e) => `${e.name} ${e.weight ? e.weight + "kg " : ""}${e.sets}×${e.reps}`).join(" · ")}</div>
                 </div>
-                <button onClick={() => saveWorkouts(workouts.filter((x) => x.id !== w.id))} style={{ border: "none", background: "none", color: "#B77", cursor: "pointer", flexShrink: 0 }}>✕</button>
+                <ConfirmBtn confirmLabel="Delete?" onConfirm={() => saveWorkouts(workouts.filter((x) => x.id !== w.id))} style={{ padding: "3px 10px", fontSize: 11, flexShrink: 0 }}>✕</ConfirmBtn>
               </div>
             ))}
             {!pastWo.length && <div style={{ fontSize: 13, color: "var(--mut)", marginTop: 10 }}>Tap a session to log it. Next time, your last numbers pre-fill — beat them when you can, that's progressive overload doing its job.</div>}
@@ -1098,9 +1098,9 @@ function Schedule({ supps = DEFAULT_SUPPS, week = DEFAULT_WEEK, saveWeek, habits
                       <input value={it.text} placeholder="What happens…" onChange={(e) => updateItem(di, it.id, { text: e.target.value })}
                         style={{ ...inputStyle, minWidth: 0, padding: "8px 8px", fontSize: 13 }} />
                       <div style={{ display: "flex", gap: 2 }}>
-                        <button onClick={() => move(di, idx, -1)} style={{ border: "none", background: "none", color: "var(--faint)", cursor: "pointer", fontSize: 15, padding: 3 }}>↑</button>
-                        <button onClick={() => move(di, idx, 1)} style={{ border: "none", background: "none", color: "var(--faint)", cursor: "pointer", fontSize: 15, padding: 3 }}>↓</button>
-                        <button onClick={() => updateDay(di, d.items.filter((x) => x.id !== it.id))} style={{ border: "none", background: "none", color: "#B77", cursor: "pointer", fontSize: 15, padding: 3 }}>✕</button>
+                        <button onClick={() => move(di, idx, -1)} aria-label="Move item earlier" style={{ border: "none", background: "none", color: "var(--faint)", cursor: "pointer", fontSize: 15, padding: 3 }}>↑</button>
+                        <button onClick={() => move(di, idx, 1)} aria-label="Move item later" style={{ border: "none", background: "none", color: "var(--faint)", cursor: "pointer", fontSize: 15, padding: 3 }}>↓</button>
+                        <ConfirmBtn confirmLabel="Delete?" onConfirm={() => updateDay(di, d.items.filter((x) => x.id !== it.id))} style={{ padding: "3px 8px", fontSize: 11 }}>✕</ConfirmBtn>
                       </div>
                     </div>
                     <select value={it.slot || ""} onChange={(e) => updateItem(di, it.id, { slot: e.target.value || undefined })} style={selStyle}>
@@ -1140,14 +1140,14 @@ function Schedule({ supps = DEFAULT_SUPPS, week = DEFAULT_WEEK, saveWeek, habits
                   <div style={{ fontWeight: 600, fontSize: 14 }}>{h}</div>
                   <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                     <span style={{ ...numFont, fontSize: 18, fontWeight: 700, color: count >= 5 ? GOOD : "var(--mut)" }}>{count}/7</span>
-                    <button onClick={() => removeHabit(h)} style={{ border: "none", background: "none", color: "#B77", cursor: "pointer", fontSize: 16 }}>✕</button>
+                    <ConfirmBtn confirmLabel="Delete this habit and this week's ticks?" onConfirm={() => removeHabit(h)} style={{ padding: "3px 10px", fontSize: 11 }}>✕</ConfirmBtn>
                   </div>
                 </div>
                 <div style={{ display: "flex", gap: 6, justifyContent: "space-between" }}>
                   {DAYS.map((d) => (
-                    <button key={d} onClick={() => toggleHabit(h, d)} style={{
+                    <button key={d} onClick={() => toggleHabit(h, d)} aria-label={`${h}, ${d}, ${row[d] ? "done" : "not done"}`} aria-pressed={!!row[d]} style={{
                       flex: 1, aspectRatio: "1", maxWidth: 46, borderRadius: "50%", border: row[d] ? "none" : "2px solid #DCD2BC",
-                      background: row[d] ? TEAL : "var(--surface)", color: row[d] ? "#fff" : "var(--mut)", fontWeight: 600, fontSize: 12, cursor: "pointer",
+                      background: row[d] ? TEAL : "var(--surface)", color: row[d] ? "var(--on-accent)" : "var(--mut)", fontWeight: 600, fontSize: 12, cursor: "pointer",
                     }}>{d[0]}</button>
                   ))}
                 </div>
@@ -1259,11 +1259,11 @@ function Meals({ recipes, save, shopping = [], saveShopping, lunchEst = LUNCH_SN
         {recipes.filter((r) => r.type === type).map((r) => {
           const on = (ids || []).includes(r.id);
           return (
-            <button key={r.id} onClick={() => toggleRotation(rkey, r.id)} style={{
+            <button key={r.id} onClick={() => toggleRotation(rkey, r.id)} aria-pressed={on} style={{
               padding: "8px 9px", borderRadius: 10, cursor: "pointer", fontSize: 12, fontWeight: 600, ...font,
               textAlign: "left", lineHeight: 1.25, minWidth: 0,
               border: on ? "none" : "1.5px solid rgba(120,106,84,0.35)",
-              background: on ? TEAL : "var(--surface)", color: on ? "#fff" : "var(--mut)",
+              background: on ? TEAL : "var(--surface)", color: on ? "var(--on-accent)" : "var(--mut)",
             }}>{on ? "✓ " : ""}{r.name}</button>
           );
         })}
@@ -1322,6 +1322,10 @@ function Meals({ recipes, save, shopping = [], saveShopping, lunchEst = LUNCH_SN
           </div>
           <Btn kind="ghost" small onClick={() => setPickerOpen(!pickerOpen)}>{pickerOpen ? "Done" : "Edit rotation"}</Btn>
         </div>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+          <div style={{ fontSize: 11, letterSpacing: 1, textTransform: "uppercase", color: "var(--mut)", fontWeight: 700 }}>Planned — rotation average</div>
+          <a href="#shopping-list" style={{ fontSize: 12, color: TEAL, fontWeight: 600, textDecoration: "none" }}>🛒 Jump to shopping list →</a>
+        </div>
         {pickerOpen && (
           <div style={{ display: "grid", gap: 12, marginBottom: 12 }}>
             <RotationPicker type="breakfast" ids={rotation.b} rkey="b" />
@@ -1350,7 +1354,7 @@ function Meals({ recipes, save, shopping = [], saveShopping, lunchEst = LUNCH_SN
         </div>
       </Card>
 
-      <Card style={{ marginBottom: 14 }}>
+      <Card id="shopping-list" style={{ marginBottom: 14 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 6, marginBottom: 6 }}>
           <div style={{ ...headFont, fontWeight: 800, color: PINE_T, fontSize: 16 }}>Shopping list{shopping.length ? ` · ${shopping.filter((i) => !i.done).length} to get` : ""}</div>
         </div>
@@ -1364,7 +1368,7 @@ function Meals({ recipes, save, shopping = [], saveShopping, lunchEst = LUNCH_SN
                   <span style={{ width: 20, height: 20, borderRadius: "50%", flexShrink: 0, borderWidth: 2, borderStyle: "solid", borderColor: it.done ? "#4C8767" : "#A69C8C", background: it.done ? "#4C8767" : "transparent", color: "#fff", fontSize: 12, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center" }}>{it.done ? "✓" : ""}</span>
                   <span style={{ fontSize: 14, color: it.done ? "var(--faint)" : INK, textDecoration: it.done ? "line-through" : "none" }}>{it.text}{it.qty > 1 ? <span style={{ color: "var(--faint)", fontWeight: 700 }}> ×{it.qty}</span> : ""}</span>
                 </button>
-                <button onClick={() => saveShopping(shopping.filter((x) => x.id !== it.id))} style={{ border: "none", background: "none", color: "#B77", cursor: "pointer", fontSize: 15, flexShrink: 0, padding: 10, minWidth: 40, minHeight: 40 }}>✕</button>
+                <ConfirmBtn confirmLabel="Delete?" onConfirm={() => saveShopping(shopping.filter((x) => x.id !== it.id))} style={{ padding: "8px 12px", fontSize: 12, flexShrink: 0, minWidth: 40, minHeight: 40 }}>✕</ConfirmBtn>
               </div>
             ))}
             <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
@@ -1391,6 +1395,7 @@ function Meals({ recipes, save, shopping = [], saveShopping, lunchEst = LUNCH_SN
       </Card>
 
       <Card style={{ marginBottom: 14 }}>
+        <div style={{ fontSize: 11, letterSpacing: 1, textTransform: "uppercase", color: "var(--mut)", fontWeight: 700, marginBottom: 4 }}>Actual — logged today</div>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
           <div style={{ ...headFont, fontWeight: 800, color: PINE_T, fontSize: 16 }}>Today's food log</div>
           <div style={{ ...numFont, fontSize: 15, fontWeight: 700, color: TEAL }}>{logTotals.cal} cal</div>
@@ -1403,7 +1408,7 @@ function Meals({ recipes, save, shopping = [], saveShopping, lunchEst = LUNCH_SN
                 <span>{it.name}</span>
                 <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
                   <span style={{ color: "var(--mut)" }}>{it.cal} cal</span>
-                  <button onClick={() => removeLogItem(it.id)} style={{ border: "none", background: "none", color: "#B77", cursor: "pointer" }}>✕</button>
+                  <ConfirmBtn confirmLabel="Delete?" onConfirm={() => removeLogItem(it.id)} style={{ padding: "3px 10px", fontSize: 11 }}>✕</ConfirmBtn>
                 </span>
               </div>
             ))}
@@ -1637,7 +1642,7 @@ function Profile({ profile, saveProfile, goal, setGoal, entries, photos, savePho
               <div style={{ fontWeight: 600, fontSize: 14 }}>{name}</div>
               <div style={{ fontSize: 12, color: "var(--mut)" }}>{desc}</div>
             </div>
-            <Toggle on={tabsEnabled[id] !== false} onTap={() => saveTabsEnabled({ ...tabsEnabled, [id]: !(tabsEnabled[id] !== false) })} />
+            <Toggle on={tabsEnabled[id] !== false} label={`Show ${name} tab`} onTap={() => saveTabsEnabled({ ...tabsEnabled, [id]: !(tabsEnabled[id] !== false) })} />
           </div>
         ))}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, borderTop: "1px solid rgba(120,106,84,0.22)", padding: "9px 0" }}>
@@ -1645,7 +1650,7 @@ function Profile({ profile, saveProfile, goal, setGoal, entries, photos, savePho
             <div style={{ fontWeight: 600, fontSize: 14 }}>GLP-1 symptom tracker</div>
             <div style={{ fontSize: 12, color: "var(--mut)" }}>Medication side effects and injection days (off by default)</div>
           </div>
-          <Toggle on={!!profile.glpEnabled} onTap={() => saveProfile({ ...profile, glpEnabled: !profile.glpEnabled })} />
+          <Toggle on={!!profile.glpEnabled} label="Enable GLP-1 symptom tracker" onTap={() => saveProfile({ ...profile, glpEnabled: !profile.glpEnabled })} />
         </div>
       </Card>
 
@@ -1655,7 +1660,7 @@ function Profile({ profile, saveProfile, goal, setGoal, entries, photos, savePho
             <div style={{ ...headFont, fontWeight: 800, color: PINE_T, fontSize: 17 }}>Holiday / deload mode</div>
             <div style={{ fontSize: 12, color: "var(--mut)", marginTop: 2 }}>Pauses your streak and softens the weekly verdict — no guilt while travelling or taking a planned break. Logging still works if you want to.</div>
           </div>
-          <Toggle on={holidayActive} onTap={() => {
+          <Toggle on={holidayActive} label="Enable holiday mode" onTap={() => {
             const now = todayISO();
             if (holidayActive) {
               saveHolidays(holidays.map((h) => h.e ? h : { ...h, e: now }));
@@ -1672,7 +1677,7 @@ function Profile({ profile, saveProfile, goal, setGoal, entries, photos, savePho
             <div style={{ ...headFont, fontWeight: 800, color: PINE_T, fontSize: 17 }}>Weigh-in reminder</div>
             <div style={{ fontSize: 12, color: "var(--mut)", marginTop: 2 }}>A local notification if you haven't logged by your chosen time. There's no server behind this app, so it can only fire while you've opened Trend that day — it can't wake your phone from fully closed. Your browser will ask permission the first time.</div>
           </div>
-          <Toggle on={!!profile.remindWeighIn} onTap={async () => {
+          <Toggle on={!!profile.remindWeighIn} label="Enable weigh-in reminder" onTap={async () => {
             if (!profile.remindWeighIn && typeof Notification !== "undefined" && Notification.permission === "default") {
               await Notification.requestPermission();
             }
@@ -1911,19 +1916,19 @@ function daysSinceDose(glp, dateISO) {
   return Math.round((new Date(dateISO) - new Date(inj[inj.length - 1])) / 86400000);
 }
 
-function TapScale({ value = 0, max = 10, onChange, accent = "#C9922B", size = 38 }) {
+function TapScale({ value = 0, max = 10, onChange, accent = "#C9922B", size = 44 }) {
   return (
     <div style={{ display: "flex", gap: 7, flexWrap: "wrap" }}>
       {Array.from({ length: max }).map((_, i) => {
         const v = i + 1, on = (value || 0) >= v;
         return (
-          <button key={v} onClick={() => onChange(value === v ? 0 : v)} style={{
+          <button key={v} onClick={() => onChange(value === v ? 0 : v)} aria-label={`Rate ${v} of ${max}`} aria-pressed={on} style={{
             width: size, height: size, borderRadius: "50%", cursor: "pointer", padding: 0, ...font,
             borderWidth: 2, borderStyle: "solid",
-            borderColor: on ? accent : "#A69C8C",
+            borderColor: on ? accent : "#8A7F6E",
             background: on ? accent : "rgba(166,156,140,0.15)",
-            color: on ? "#fff" : "#A69C8C", fontSize: 11, fontWeight: 700,
-          }}>{v === value ? v : ""}</button>
+            color: on ? "var(--on-accent)" : "#5C5348", fontSize: 12, fontWeight: 700,
+          }}>{v}</button>
         );
       })}
     </div>
@@ -2100,7 +2105,7 @@ function Glp({ glp = {}, saveGlp, accent = "#C9922B", water = {}, saveWater, set
         {sectionTitle("Hydration & fibre")}
         <div style={{ display: "flex", gap: 4, marginBottom: 10 }}>
           {Array.from({ length: 8 }).map((_, i) => (
-            <button key={i} onClick={() => setCups(i + 1 === cups ? i : i + 1)} style={{
+            <button key={i} onClick={() => setCups(i + 1 === cups ? i : i + 1)} aria-label={`Water: ${i + 1} of 8 cups${i < cups ? ", filled" : ""}`} aria-pressed={i < cups} style={{
               flex: 1, minWidth: 0, height: 32, borderRadius: "0 0 8px 8px", cursor: "pointer",
               WebkitAppearance: "none", appearance: "none", padding: 0, boxSizing: "border-box",
               borderWidth: 2, borderStyle: "solid",
@@ -2147,7 +2152,7 @@ function Glp({ glp = {}, saveGlp, accent = "#C9922B", water = {}, saveWater, set
         <div style={{ borderTop: "1px solid rgba(120,106,84,0.22)", paddingTop: 10, marginTop: 4 }}>
           <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
             <input type="time" value={mealTime} onChange={(e) => setMealTime(e.target.value)} style={{ ...inputStyle, width: 100, minWidth: 0, padding: "8px 6px", fontSize: 13, WebkitAppearance: "none", appearance: "none" }} />
-            <TapScale value={mealEnergy} max={10} accent={accent} size={34} onChange={setMealEnergy} />
+            <TapScale value={mealEnergy} max={10} accent={accent} size={40} onChange={setMealEnergy} />
             <Btn kind="teal" small onClick={() => { if (mealEnergy) { setDay({ meals: [...(day.meals || []), { id: "m" + Date.now(), time: mealTime, energy: mealEnergy }] }); setMealEnergy(0); } }}>Add</Btn>
           </div>
           <div style={{ fontSize: 11, color: "var(--faint)", marginTop: 5 }}>Log meal time, then rate your energy ~30 min after eating. No calories — just the pattern.</div>
@@ -2225,9 +2230,9 @@ function DobPicker({ value, onChange }) {
   );
 }
 
-function Toggle({ on, onTap }) {
+function Toggle({ on, onTap, label }) {
   return (
-    <button onClick={onTap} className="tt-toggle-track" style={{ width: 54, height: 32, borderRadius: 16, cursor: "pointer", flexShrink: 0, position: "relative", borderWidth: 2, borderStyle: "solid", borderColor: on ? "#4C8767" : "#A69C8C", background: on ? "#4C8767" : "rgba(166,156,140,0.2)", padding: 0 }}>
+    <button onClick={onTap} role="switch" aria-checked={on} aria-label={label} className="tt-toggle-track" style={{ width: 54, height: 32, borderRadius: 16, cursor: "pointer", flexShrink: 0, position: "relative", borderWidth: 2, borderStyle: "solid", borderColor: on ? "#4C8767" : "#A69C8C", background: on ? "#4C8767" : "rgba(166,156,140,0.2)", padding: 0 }}>
       <span className="tt-toggle-thumb" style={{ position: "absolute", top: 2, left: on ? 24 : 2, width: 24, height: 24, borderRadius: "50%", background: "#fff", transition: "left .15s" }} />
     </button>
   );
@@ -2275,6 +2280,7 @@ function ResetControls({ resetContent, eraseAll }) {
 }
 
 const RESPONSIVE_CSS = `
+  button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible, a:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
   .tt-shell { max-width: 760px; margin: 0 auto; padding: calc(18px + env(safe-area-inset-top)) 16px 104px; }
   .tt-card { border: 1px solid #E8E0D2; }
   .tt-dark .tt-card { border: 1px solid #2A241C; }
@@ -2357,7 +2363,7 @@ export default function HealthTracker() {
   const [workouts, setWorkouts] = useState([]);
   const [theme, setThemeState] = useState("auto");
   const [seenMs, setSeenMs] = useState([]);
-  const [colorTheme, setColorThemeState] = useState("pine");
+  const [colorTheme, setColorThemeState] = useState("forest");
   const [glp, setGlp] = useState({});
   const [glpSettings, setGlpSettings] = useState({ name: "", dose: "" });
   const [shopping, setShopping] = useState([]);
@@ -2395,7 +2401,7 @@ export default function HealthTracker() {
       setWorkouts(await sGet("workouts", []));
       setThemeState(await sGet("theme", "auto"));
       setSeenMs(await sGet("seenMilestones", []));
-      setColorThemeState(await sGet("colorTheme", "pine"));
+      setColorThemeState(await sGet("colorTheme", "forest"));
       setGlp(await sGet("glp", {}));
       setGlpSettings(await sGet("glpSettings", { name: "", dose: "" }));
       setShopping(await sGet("shopping", []));
@@ -2466,7 +2472,7 @@ export default function HealthTracker() {
       <style>{RESPONSIVE_CSS}</style>
       <div className="tt-shell">
         <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 14 }}>
-          <div style={{ ...numFont, fontSize: 26, ...headFont, fontWeight: 800, color: PINE_T, letterSpacing: 0.5 }}>TREND</div>
+          <h1 style={{ ...numFont, fontSize: 26, ...headFont, fontWeight: 800, color: PINE_T, letterSpacing: 0.5, margin: 0 }}>TREND</h1>
           <div style={{ fontSize: 12, color: "var(--mut)" }}>{new Date().toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long" })}</div>
         </div>
         {!loaded ? <div style={{ textAlign: "center", color: "var(--mut)", padding: 60 }}>Loading your data…</div> : (
@@ -2483,18 +2489,18 @@ export default function HealthTracker() {
       </div>
       {/* Bottom tab bar */}
       <Toast msg={toastMsg} />
-      {loaded && <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: "transparent", padding: "0 12px calc(10px + env(safe-area-inset-bottom))", pointerEvents: "none" }}>
+      {loaded && <nav aria-label="Main navigation" style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: "transparent", padding: "0 12px calc(10px + env(safe-area-inset-bottom))", pointerEvents: "none" }}>
         <div className="tt-tabs" style={{ background: "var(--surface)", pointerEvents: "auto" }}>
         {TABS.filter((t) => (t.id === "today" || t.id === "me") ? true : t.id === "glp" ? !!profile.glpEnabled : tabsEnabled[t.id] !== false).map((t) => (
-          <button key={t.id} onClick={() => setTab(t.id)} style={{ background: "none", border: "none", cursor: "pointer", padding: "5px 6px", display: "flex", flexDirection: "column", alignItems: "center", gap: 2, flexShrink: 0, minWidth: 44, minHeight: 44, justifyContent: "center", ...font }}>
-            <span style={{ width: 32, height: 32, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14,
+          <button key={t.id} onClick={() => setTab(t.id)} aria-current={tab === t.id ? "page" : undefined} style={{ background: "none", border: "none", cursor: "pointer", padding: "5px 6px", display: "flex", flexDirection: "column", alignItems: "center", gap: 2, flexShrink: 0, minWidth: 44, minHeight: 44, justifyContent: "center", ...font }}>
+            <span aria-hidden="true" style={{ width: 32, height: 32, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14,
               background: tab === t.id ? "var(--teal-soft)" : "transparent",
               color: tab === t.id ? "var(--pine-t)" : "var(--mut)" }}>{t.icon}</span>
             <span style={{ fontSize: 8.5, fontWeight: tab === t.id ? 800 : 500, color: tab === t.id ? "var(--ink)" : "var(--faint)", whiteSpace: "nowrap", ...headFont }}>{t.label}</span>
           </button>
         ))}
         </div>
-      </div>}
+      </nav>}
     </div>
   );
 }
