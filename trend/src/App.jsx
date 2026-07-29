@@ -1278,7 +1278,7 @@ function Meals({ recipes, save, shopping = [], saveShopping, lunchEst = LUNCH_SN
         <Card key={r.id} style={{ marginBottom: 8, padding: 0, overflow: "hidden" }}>
           <button onClick={() => setOpenId(openId === r.id ? null : r.id)} style={{ width: "100%", padding: "13px 16px", background: "none", border: "none", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, cursor: "pointer", ...font }}>
             <div style={{ textAlign: "left", minWidth: 0 }}>
-              <div style={{ fontWeight: 600, fontSize: 15 }}>{r.name}</div>
+              <div style={{ fontWeight: 600, fontSize: 15, color: INK }}>{r.name}</div>
               <div style={{ fontSize: 12, color: "var(--mut)" }}>{r.serves}</div>
             </div>
             <div style={{ textAlign: "right", flexShrink: 0 }}>
